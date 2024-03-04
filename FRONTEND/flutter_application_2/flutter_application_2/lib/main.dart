@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';  
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 final String url = 'http://localhost:8000';
@@ -78,6 +79,9 @@ class _LoginPageState extends State<LoginPage> {
                 print("Received response: ${response.statusCode}");
                 print("Response body: ${response.body}");
                 if (response.statusCode == 200) {
+                  // Sauvegardez le nom d'utilisateur dans les préférences partagées
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  prefs.setString('username', _usernameController.text);
                   print("Login successful, navigating to ChatListPage");
                   Navigator.pushReplacement(
                     context,
@@ -119,7 +123,13 @@ class _ChatListPageState extends State<ChatListPage> {
 
   // Méthode pour récupérer les contacts depuis le serveur
  void _fetchContacts() async {
-  final response = await http.get(Uri.parse('$url/contacts'));
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? username = prefs.getString('username');
+  final response = await http.post(Uri.parse('$url/contacts'),
+                  body: jsonEncode({
+                    'username': username,
+                  }),
+                  headers: {'Content-Type': 'application/json'},);
   if (response.statusCode == 200) {
     final contentType = response.headers['content-type'];
     if (contentType != null && contentType.contains('application/json')) {
