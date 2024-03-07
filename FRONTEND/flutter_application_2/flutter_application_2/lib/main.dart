@@ -12,13 +12,21 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 
-final String url = 'http://localhost:8000';
+final String url = 'https://localhost:8000';
+
+// Créez un objet SecurityContext
+SecurityContext securityContext = SecurityContext();
+
+// Désactivez la vérification du certificat
+// securityContext.setTrustedCertificatesBytes([]);
 
 void main() {
   // Désactiver la vérification du certificat TLS
   // HttpClient httpClient = HttpClient()
   //   ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-
+  
+  // http.Client client = http.Client(context: securityContext);
+  
   runApp(MyApp());
 }
 
@@ -75,13 +83,16 @@ class _LoginPageState extends State<LoginPage> {
                   }),
                   headers: {'Content-Type': 'application/json'},
                 );
+                //var response2 = await http.get( Uri.parse('$url/test'));
                 print("Received response: ${response.statusCode}");
                 print("Response body: ${response.body}");
                 if (response.statusCode == 200) {
                   print("Login successful, navigating to ChatListPage");
+                  var responseData = json.decode(response.body);
+                  String sessionToken = responseData['access_token'];
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => ChatListPage()),
+                    MaterialPageRoute(builder: (context) => ChatListPage(sessionToken)),
                   );
                 } else {
                   print("Invalid credentials received, updating error message");
@@ -104,6 +115,9 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class ChatListPage extends StatefulWidget {
+  final String sessionToken; 
+
+  ChatListPage(this.sessionToken);
   @override
   _ChatListPageState createState() => _ChatListPageState();
 }
@@ -119,7 +133,9 @@ class _ChatListPageState extends State<ChatListPage> {
 
   // Méthode pour récupérer les contacts depuis le serveur
  void _fetchContacts() async {
-  final response = await http.get(Uri.parse('$url/contacts'));
+  final response = await http.get(
+      Uri.parse('$url/contacts'),
+      headers: {'Authorization': 'Bearer ${widget.sessionToken}'},);
   if (response.statusCode == 200) {
     final contentType = response.headers['content-type'];
     if (contentType != null && contentType.contains('application/json')) {
