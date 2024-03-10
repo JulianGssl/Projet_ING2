@@ -147,3 +147,34 @@ COLLATE = utf8mb4_0900_ai_ci;
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+
+-- ---------------------------------------------------
+-- Insérer des valeurs dans la table `user`
+INSERT INTO app_db.user (idUser, username, email, password_hash) VALUES
+(1, 'Alice', 'alice@gmail.com', '123test'),
+(2, 'Bob', 'bob@gmail.com', '123test');
+
+-- Insérer des valeurs dans la table `contact`
+INSERT INTO app_db.contact (id, id_user, id_contact) VALUES
+(1, 1, 2),
+(2, 2, 1);
+
+-- Insérer des valeurs dans la table `conv`
+INSERT INTO app_db.conv (idConv, name, type) VALUES
+(1, 'Group 1', ''),
+(2, 'Group 2', '');
+
+-- Insérer des valeurs dans la table `conv_member`
+INSERT INTO app_db.conv_member (idconvMember, idConv, idUser, role) VALUES
+(1, 1, 1, ''),
+(2, 1, 2, ''),
+(3, 2, 1, ''),
+(4, 2, 2, '');
+
+-- Insérer des valeurs dans la table `message`
+INSERT INTO app_db.message (idMessage, id_conv, id_sender, content, date) VALUES
+(1, 1, 1, 'Hello, how are you?', '2024-03-09 12:00:00'),
+(2, 1, 2, 'Hi, I am fine thanks!', '2024-03-09 12:05:00');
+
+
