@@ -1,125 +1,342 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:crypto/crypto.dart'; // ATTENTION cette bibliothèque n'as pas été tester par des pro de securité
+//import 'package:pointycastle/export.dart';
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+final String url = 'http://localhost:8000';
+
+// Créez un objet SecurityContext
+SecurityContext securityContext = SecurityContext();
+
+// Désactivez la vérification du certificat
+// securityContext.setTrustedCertificatesBytes([]);
 
 void main() {
-  runApp(const MyApp());
+  // Désactiver la vérification du certificat TLS
+  // HttpClient httpClient = HttpClient()
+  //   ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+
+  // http.Client client = http.Client(context: securityContext);
+
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter Messenger',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: LoginPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class LoginPage extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  String _errorMessage = '';
 
-  void _incrementCounter() {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Login'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _usernameController,
+              decoration: InputDecoration(labelText: 'Username'),
+            ),
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                print("Trying to login...");
+                var response = await http.post(
+                  Uri.parse('$url/login'),
+                  body: jsonEncode({
+                    'username': _usernameController.text,
+                    'password': _passwordController.text
+                  }),
+                  headers: {'Content-Type': 'application/json'},
+                );
+                //var response2 = await http.get( Uri.parse('$url/test'));
+                print("Received response: ${response.statusCode}");
+                print("Response body: ${response.body}");
+                if (response.statusCode == 200) {
+                  print("Login successful, navigating to ChatListPage");
+                  var responseData = json.decode(response.body);
+                  String sessionToken = responseData['access_token'];
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ChatListPage(sessionToken)),
+                  );
+                } else {
+                  print("Invalid credentials received, updating error message");
+                  setState(() {
+                    _errorMessage =
+                        'Identifiants invalides. Veuillez réessayer.';
+                  });
+                }
+              },
+              child: Text('Login'),
+            ),
+            Text(
+              _errorMessage,
+              style: TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ChatListPage extends StatefulWidget {
+  final String sessionToken;
+
+  ChatListPage(this.sessionToken);
+  @override
+  _ChatListPageState createState() => _ChatListPageState();
+}
+
+class _ChatListPageState extends State<ChatListPage> {
+  List<String> _contacts = []; // Liste des contacts
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchContacts(); // Appel à la méthode pour récupérer les contacts
+  }
+
+  // Méthode pour récupérer les contacts depuis le serveur
+  void _fetchContacts() async {
+    final response = await http.get(
+      Uri.parse('$url/contacts'),
+      headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
+    );
+    if (response.statusCode == 200) {
+      final contentType = response.headers['content-type'];
+      if (contentType != null && contentType.contains('application/json')) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _contacts = List<String>.from(data['contacts']);
+        });
+      } else {
+        print('Response is not in JSON format');
+      }
+    } else {
+      print('Failed to load contacts: ${response.statusCode}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Chats'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              // Implement search functionality here
+            },
+          ),
+        ],
+      ),
+      body: ListView(
+        children: [
+          _buildChatListItem(context, "Moi"), // Chat "Moi"
+          // Afficher tous les contacts récupérés de la même manière
+          ..._contacts.map((contact) => _buildChatListItem(context, contact)),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddFriendPage()),
+          );
+        },
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildChatListItem(BuildContext context, String roomName) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue,
+          child: Icon(Icons.person), // Placeholder for user image
+        ),
+        title: Text(
+          roomName,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChatPage(roomName)),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// AddFriendPage and ChatPage classes remain the same
+
+class AddFriendPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Add Friend'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              decoration: InputDecoration(labelText: 'Enter username'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // Add friend logic here
+                Navigator.pop(context); // Go back to previous page
+              },
+              child: Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ChatPage extends StatefulWidget {
+  final String roomName;
+
+  ChatPage(this.roomName);
+
+  @override
+  _ChatPageState createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final List<Message> _messages = [];
+  final TextEditingController _textController = TextEditingController();
+
+  void _addMessage(String text) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _messages.add(Message(text, DateTime.now()));
+      _textController.clear();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text(widget.roomName),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                return _buildMessage(message);
+              },
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
+          ),
+          _buildMessageInput(),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
+  Widget _buildMessage(Message message) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10.0),
+      padding: EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+      decoration: BoxDecoration(
+        color: Colors.blueAccent,
+        borderRadius: BorderRadius.circular(20.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message.text,
+            style: TextStyle(color: Colors.white),
+          ),
+          SizedBox(height: 4.0),
+          Text(
+            "${message.time.hour}:${message.time.minute}",
+            style: TextStyle(fontSize: 10.0, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageInput() {
+    return Container(
+      padding: EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _textController,
+              decoration: InputDecoration(labelText: 'Enter message'),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.send),
+            onPressed: () {
+              _addMessage(_textController.text);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class Message {
+  final String text;
+  final DateTime time;
+
+  Message(this.text, this.time);
 }
