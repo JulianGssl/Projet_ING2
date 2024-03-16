@@ -18,15 +18,3 @@ if __name__ == '__main__':
     socketio.run(app, port=8000)
 ```
 
-
-<br><br>
-
-<ins> Problème </ins> 
-
-Erreur lors de l'emit côté serveur et socket.on côté client : flask & socket io problème ?
-
-Client: emit - Serveur: socket.on [OK]
-
-Serveur: emit - Client: socket.on [X]
-
-Check acknowledgement to solve this issue
