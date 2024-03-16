@@ -1,17 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import 'addfriendpage.dart';
 import 'chatpage.dart';
 
-final String url = 'http://localhost:8000';
-
+const String url = 'http://localhost:8000';
 
 class ChatListPage extends StatefulWidget {
   final String sessionToken;
+  final String username;
+  final IO.Socket socket;
 
-  ChatListPage(this.sessionToken);
+  const ChatListPage({super.key, required this.sessionToken, required this.username, required this.socket});
+
   @override
   _ChatListPageState createState() => _ChatListPageState();
 }
@@ -22,6 +25,7 @@ class _ChatListPageState extends State<ChatListPage> {
   @override
   void initState() {
     super.initState();
+    print("----------------- ChatListPage - initState -----------------");
     _fetchContacts(); // Appel à la méthode pour récupérer les contacts
   }
 
@@ -50,10 +54,20 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Chats'),
+        title: Row(
+          children: [
+            const Text('Chats |'),
+            const SizedBox(
+                width: 8), // Ajoute un espacement entre le texte "Chats" et l'username
+            Text(
+              widget.username,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.search),
+            icon: const Icon(Icons.search),
             onPressed: () {
               // Implement search functionality here
             },
@@ -62,7 +76,6 @@ class _ChatListPageState extends State<ChatListPage> {
       ),
       body: ListView(
         children: [
-          _buildChatListItem(context, "Moi"), // Chat "Moi"
           // Afficher tous les contacts récupérés de la même manière
           ..._contacts.map((contact) => _buildChatListItem(context, contact)),
         ],
@@ -71,10 +84,10 @@ class _ChatListPageState extends State<ChatListPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddFriendPage()),
+            MaterialPageRoute(builder: (context) => const AddFriendPage()),
           );
         },
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -83,13 +96,13 @@ class _ChatListPageState extends State<ChatListPage> {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ListTile(
-        leading: CircleAvatar(
+        leading: const CircleAvatar(
           backgroundColor: Colors.blue,
           child: Icon(Icons.person), // Placeholder for user image
         ),
         title: Text(
           roomName,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -97,8 +110,12 @@ class _ChatListPageState extends State<ChatListPage> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ChatPage(roomName)),
+            MaterialPageRoute(
+              builder: (context) => ChatPage(
+                roomName: roomName, 
+                username: widget.username)),
           );
+          print("/chatlistpage.dart - roomName: $roomName");
         },
       ),
     );
