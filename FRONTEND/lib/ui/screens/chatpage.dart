@@ -1,172 +1,187 @@
 import 'package:flutter/material.dart';
-import '../../models/message.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:image_picker/image_picker.dart';
+
+class Message {
+  String text;
+  DateTime time;
+  bool isUserMessage;
+  String? imageUrl;
+
+  Message(this.text, this.time, this.isUserMessage, {this.imageUrl});
+}
 
 class ChatPage extends StatefulWidget {
   final String roomName;
-  final String username;
 
-  const ChatPage({super.key, required this.roomName, required this.username});
+  ChatPage(this.roomName);
 
   @override
   _ChatPageState createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final List<Message> _messages = [];
+  final List<Message> _messages = [
+    Message('Hello Worlddd', DateTime.now(), false),
+    Message('Lorem Ipsum\nttetette', DateTime.now().subtract(Duration(minutes: 1)), true),
+  ];
   final TextEditingController _textController = TextEditingController();
-  IO.Socket? socket;
+  final ImagePicker _picker = ImagePicker();
 
-  void startChat(String user1, String user2) {
-    socket?.emit('start_chat', {
-      'user1': user1,
-      'user2': user2,
+  void _addMessage(String text, {String? imageUrl}) {
+    setState(() {
+      _messages.insert(0, Message(text, DateTime.now(), true, imageUrl: imageUrl));
+      _textController.clear();
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    print("----------------- ChatPage - initState -----------------");
-    // Initialisez la connexion SocketIO
-    _initSocketIO();
-
-    // On démarre la conversation
-    startChat(widget.username, widget.roomName);
-    print(
-        "/chatpage.dart - roomName: ${widget.roomName} username: ${widget.username}");
-
-    // On vérifie que la conversation est bien établie
-    socket?.on('chatStarted', (data) {
-      if (data != null) {
-        print("/chatpage.dart - Canal de communication établie pour " +
-            data +
-            " V");
-      } else {
-        print(
-            "/chatpage.dart - Erreur lors de l'établissement du canal de communication X");
-      }
-    });
-
-    // Écoutez les nouveaux messages
-    socket?.on('new_message', (data) {
-      print("------- Receving message -------");
-      print("/chatpage.dart - Message reçu : " + data['message']);
-      // Ajoutez le message reçu à la liste des messages
-      String newMessage = data['message'];
-      setState(() {
-        _messages.add(Message(newMessage, DateTime.now(), data['sender']));
-      });
-    });
-  }
-
-  void _addMessage(String text) {
-    if (text.isEmpty) {
-      return;
+  Future<void> _sendImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      _addMessage('', imageUrl: image.path);
     }
-    print("------- Sending message -------");
-    print("/chatpage.dart - _addMessage called");
-    print(
-        "/chatpage.dart - text: $text | sender: ${widget.username} | recipient: ${widget.roomName}");
-
-    // Émettez le message au serveur via SocketIO sans acknowledgment
-    socket?.emit('private_message', {
-      'sender': widget.username,
-      'recipient': widget.roomName,
-      'message': text,
-    });
-
-    _textController.clear();
-    print("/chatpage.dart - end of _addMessage");
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.roomName),
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: Colors.black),
+        onPressed: () {
+          Navigator.of(context).pop();
+        },
       ),
-      body: Column(
+      backgroundColor: Colors.white,
+      title: Row(
         children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                return _buildMessage(message);
-              },
-            ),
+          CircleAvatar(
+            // Assurez-vous que le chemin de l'image est correct
+            backgroundImage: AssetImage('path/to/your/image.jpg'),
+            radius: 16,
           ),
-          _buildMessageInput(),
+          SizedBox(width: 10),
+          Text(
+            widget.roomName,
+            style: TextStyle(color: Colors.black),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMessage(Message message) {
-  final isCurrentUser = message.sender == widget.username;
-
-  return Container(
-    margin: const EdgeInsets.symmetric(vertical: 10.0),
-    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-    decoration: BoxDecoration(
-      color: isCurrentUser ? Colors.blueAccent : Colors.green, // Couleur différente pour les messages de l'utilisateur et de l'autre personne
-      borderRadius: BorderRadius.circular(20.0),
+      elevation: 0,
     ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    body: Column(
       children: [
-        Text(
-          message.text,
-          style: const TextStyle(color: Colors.white),
+        Expanded(
+          child: ListView.builder(
+            reverse: true,
+            itemCount: _messages.length,
+            itemBuilder: (context, index) {
+              final message = _messages[index];
+              return _buildMessage(message);
+            },
+          ),
         ),
-        const SizedBox(height: 4.0),
-        Text(
-          "${message.time.hour}:${message.time.minute}",
-          style: const TextStyle(fontSize: 10.0, color: Colors.white),
-        ),
+        SizedBox(height: 10), // Ajoutez un espace avant la zone d'entrée de texte
+        _buildMessageInput(),
       ],
     ),
   );
 }
 
 
-  Widget _buildMessageInput() {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
+  Widget _buildMessage(Message message) {
+    final bool isUserMessage = message.isUserMessage;
+    final messageColor = isUserMessage ? Colors.blue : Colors.grey.shade300;
+    final textColor = isUserMessage ? Colors.white : Colors.black87;
+    final timeTextStyle = TextStyle(
+      fontSize: 10.0,
+      color: textColor.withOpacity(0.6),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       child: Row(
+        mainAxisAlignment: isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: const InputDecoration(labelText: 'Enter message'),
-              onSubmitted: (text) {
-                _addMessage(text);
-              },
+          if (!isUserMessage)
+            Padding(
+              padding: const EdgeInsets.only(right: 10.0),
+              child: CircleAvatar(
+                backgroundImage: AssetImage('path/to/your/avatar.jpg'), // Replace with your avatar image path
+                radius: 16,
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.send),
-            onPressed: () {
-              _addMessage(_textController.text);
-            },
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+            margin: isUserMessage ? EdgeInsets.only(right: 10.0) : EdgeInsets.only(left: 10.0),
+            decoration: BoxDecoration(
+              color: messageColor,
+              borderRadius: BorderRadius.circular(18.0),
+            ),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                Text(
+                  message.text,
+                  style: TextStyle(color: textColor),
+                ),
+                SizedBox(width: 8.0), // Space between message text and time
+                Text(
+                  "${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}",
+                  style: timeTextStyle,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _initSocketIO() {
-    // Initialisation de la connexion Socket.IO
-    socket = IO.io('http://localhost:8000', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-    });
-    // Connexion au serveur Socket.IO
-    socket?.connect();
-    socket?.on('connectResponse', (data) {
-      print('Connected to the server');
-      print('Received message: $data');
-    });
+  Widget _buildMessageInput() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 10.0),
+      padding: EdgeInsets.symmetric(horizontal: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            blurRadius: 3.0,
+            offset: Offset(0, -1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.photo_camera, color: Colors.grey),
+            onPressed: _sendImage,
+          ),
+          Expanded(
+            child: TextField(
+              controller: _textController,
+              decoration: InputDecoration(
+                hintText: 'Type something...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.send, color: Colors.blueAccent),
+            onPressed: () {
+              if (_textController.text.trim().isNotEmpty) {
+                _addMessage(_textController.text.trim());
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
+
