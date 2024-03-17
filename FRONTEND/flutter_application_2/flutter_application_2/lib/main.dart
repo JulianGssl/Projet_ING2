@@ -1,18 +1,39 @@
+// import 'dart:async';
+// import 'dart:convert';
+// import 'dart:io';
+
+// import 'package:cookie_jar/cookie_jar.dart';
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:crypto/crypto.dart';         // ATTENTION cette bibliothèque n'as pas été tester par des pro de securité
+// //import 'package:pointycastle/export.dart';
+// import 'package:flutter/material.dart';
+// import 'dart:async';
+// import 'dart:convert';  
+// import 'package:http/http.dart' as http;
+// import 'package:cookie_jar/cookie_jar.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+
+
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:cookie_jar/cookie_jar.dart';
+// import 'package:http/io_client.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:crypto/crypto.dart';         // ATTENTION cette bibliothèque n'as pas été tester par des pro de securité
-//import 'package:pointycastle/export.dart';
-import 'package:flutter/material.dart';
-import 'dart:async';
-import 'dart:convert';  
-import 'package:http/http.dart' as http;
+import 'package:crypto/crypto.dart';
 
 
-final String url = 'https://localhost:8000';
+final String url = 'http://localhost:8000';
+
+
 
 // Créez un objet SecurityContext
 SecurityContext securityContext = SecurityContext();
@@ -25,8 +46,19 @@ void main() {
   // HttpClient httpClient = HttpClient()
   //   ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
   
-  // http.Client client = http.Client(context: securityContext);
-  
+  //http.Client client = http.Client(context: securityContext);
+
+
+
+  // Pour la gestion des cookie , ne fonctionne pas 
+  // // Créez un objet CookieJar
+  // final cookieJar = CookieJar();
+
+  // // Créez un client HTTP avec le CookieJar
+  // final client = http.Client();
+  // client.cookieJar = cookieJar;
+
+
   runApp(MyApp());
 }
 
@@ -114,8 +146,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class ChatListPage extends StatefulWidget {
-  final String sessionToken; 
+class ChatListPage extends StatefulWidget {  // Modif pr renouv token sessionToken plus final
+  String sessionToken; 
 
   ChatListPage(this.sessionToken);
   @override
@@ -124,11 +156,48 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   List<String> _contacts = []; // Liste des contacts
+  late Timer _timer;
 
   @override
   void initState() {
     super.initState();
     _fetchContacts(); // Appel à la méthode pour récupérer les contacts
+    _startTokenRefreshTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+
+  // Méthode pour démarrer le timer pour le renouvellement automatique du token
+  void _startTokenRefreshTimer() {
+    const refreshThreshold = Duration(minutes: 1); // Temps d'intervalle pour le renouvellement du token
+    _timer = Timer.periodic(refreshThreshold, (timer) {
+      _refreshTokenIfNeeded(); // Vérifie si le token doit être renouvelé
+    });
+  }
+
+  // Méthode pour renouveler le token si nécessaire
+  void _refreshTokenIfNeeded() async {
+    print('Refreshing token...');
+    var response = await http.post(
+      Uri.parse('$url/refresh_token'),
+      headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
+    );
+    if (response.statusCode == 200) {
+      var responseData = json.decode(response.body);
+      String newToken = responseData['access_token'];
+      // Met à jour le token avec le nouveau token renouvelé
+      setState(() {
+        widget.sessionToken = newToken;
+      });
+      print('Token refreshed successfully');
+    } else {
+      print('Failed to refresh token: ${response.statusCode}');
+    }
   }
 
   // Méthode pour récupérer les contacts depuis le serveur
@@ -152,6 +221,25 @@ class _ChatListPageState extends State<ChatListPage> {
 }
 
 
+  // Méthode pour se déconnecter
+  void _logout() async {
+    final response = await http.post(
+      Uri.parse('$url/logout'),
+      headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
+    );
+    if (response.statusCode == 200) {
+      // Rediriger vers la page de connexion
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
+      print('log out succesful');
+    } else {
+      print('Failed to logout: ${response.statusCode}');
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +254,10 @@ class _ChatListPageState extends State<ChatListPage> {
             },
           ),
         ],
+        leading: IconButton(
+          icon: Icon(Icons.logout),
+          onPressed: _logout,
+        ),
       ),
       body: ListView(
         children: [
@@ -259,10 +351,12 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final List<Message> _messages = [];
   final TextEditingController _textController = TextEditingController();
+  bool _isBlueBackground = true;
 
   void _addMessage(String text) {
     setState(() {
-      _messages.add(Message(text, DateTime.now()));
+      _messages.add(Message(text, DateTime.now(), _isBlueBackground));
+      _isBlueBackground = !_isBlueBackground; // Toggle background color
       _textController.clear();
     });
   }
@@ -291,11 +385,13 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessage(Message message) {
+    Color? backgroundColor = message.isBlueBackground ? Colors.blueAccent : Colors.grey[300];
+
     return Container(
       margin: EdgeInsets.symmetric(vertical: 10.0),
       padding: EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
       decoration: BoxDecoration(
-        color: Colors.blueAccent,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(20.0),
       ),
       child: Column(
@@ -303,7 +399,7 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           Text(
             message.text,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.black),
           ),
           SizedBox(height: 4.0),
           Text(
@@ -341,6 +437,7 @@ class _ChatPageState extends State<ChatPage> {
 class Message {
   final String text;
   final DateTime time;
+  final bool isBlueBackground; // Added property
 
-  Message(this.text, this.time);
+  Message(this.text, this.time, this.isBlueBackground);
 }
