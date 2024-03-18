@@ -111,9 +111,7 @@ class _ChatListPageState extends State<ChatListPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChatPage(
-                roomName: roomName, 
-                username: widget.username)),
+              builder: (context) => ChatPage(roomName)),
           );
           print("/chatlistpage.dart - roomName: $roomName");
         },
