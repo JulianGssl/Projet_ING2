@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+import 'chatlistpage.dart';
 
 void main() {
   runApp(MyApp());
@@ -23,6 +28,10 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  String _errorMessage = '';
+
+  IO.Socket? socket;
 
   @override
   void dispose() {
@@ -67,10 +76,10 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
     );
   }
 
-  Widget _buildRaisedButton(String text) {
+  Widget _buildLoginButton(String text) {
     return ElevatedButton(
       onPressed: () {
-        // Implement button functionality
+        _handleLoginButtonPressed();
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
@@ -82,6 +91,22 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       child: Text(text),
     );
   }
+
+  Widget _buildSignOnButton(String text) {
+    return ElevatedButton(
+      onPressed: () {
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30.0),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
+      ),
+      child: Text(text),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -128,11 +153,13 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
                       children: [
                         _buildTextField(_nameController, 'Your name'),
                         SizedBox(height: 16.0),
-                        _buildTextField(_emailController, 'Email', keyboardType: TextInputType.emailAddress),
+                        _buildTextField(_emailController, 'Email',
+                            keyboardType: TextInputType.emailAddress),
                         SizedBox(height: 16.0),
-                        _buildTextField(_passwordController, 'Password', isPassword: true),
+                        _buildTextField(_passwordController, 'Password',
+                            isPassword: true),
                         SizedBox(height: 24.0),
-                        _buildRaisedButton('Get Started'),
+                        _buildSignOnButton('Get Started'),
                       ],
                     ),
                   ),
@@ -140,11 +167,12 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
                     padding: EdgeInsets.all(24.0),
                     child: Column(
                       children: [
-                        _buildTextField(_emailController, 'Email', keyboardType: TextInputType.emailAddress),
+                        _buildTextField(_usernameController, 'Username'),
                         SizedBox(height: 16.0),
-                        _buildTextField(_passwordController, 'Password', isPassword: true),
+                        _buildTextField(_passwordController, 'Password',
+                            isPassword: true),
                         SizedBox(height: 24.0),
-                        _buildRaisedButton('Sign In'),
+                        _buildLoginButton('Sign In'),
                       ],
                     ),
                   ),
@@ -155,5 +183,55 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
         ),
       ),
     );
+  }
+
+  void _handleLoginButtonPressed() async {
+    print("Trying to login...");
+    var response = await http.post(
+      Uri.parse('$url/login'),
+      body: jsonEncode({
+        'username': _usernameController.text,
+        'password': _passwordController.text
+      }),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (response.statusCode == 200) {
+      print("Login successful, navigating to ChatListPage");
+      // Navigation vers la page ChatListPage
+      var responseData = json.decode(response.body);
+      String sessionToken = responseData['access_token'];
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatListPage(
+            sessionToken: sessionToken,
+            username: _usernameController.text,
+            socket: socket!,
+          ),
+        ),
+      );
+      // Initialisation de la connexion Socket.IO
+      print("/loginpage - calling _initSocketIO");
+      _initSocketIO();
+    } else {
+      print("Invalid credentials received, updating error message");
+      setState(() {
+        _errorMessage = 'Identifiants invalides. Veuillez réessayer.';
+      });
+    }
+  }
+
+  void _initSocketIO() {
+    // Initialisation de la connexion Socket.IO
+    socket = IO.io('http://localhost:8000', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+    // Connexion au serveur Socket.IO
+    socket?.connect();
+    socket?.on('connectResponse', (data) {
+      print('Connected to the server');
+      print('Received message: $data');
+    });
   }
 }
