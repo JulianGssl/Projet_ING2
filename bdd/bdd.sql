@@ -155,6 +155,6 @@ INSERT INTO app_db.convmember (idconvMember, idConv, idUser, role) VALUES
 (4, 2, 2, '');
 
 -- Insérer des valeurs dans la table `message`
-INSERT INTO app_db.message (idMessage, id_conv, id_sender, content, date) VALUES
+INSERT INTO app_db.message (idMessage, id_conv, id_sender, content, date, is_read) VALUES
 (1, 1, 1, 'Hello, how are you?', '2024-03-09 12:00:00',1),
 (2, 1, 2, 'Hi, I am fine thanks!', '2024-03-09 12:05:00',1);
