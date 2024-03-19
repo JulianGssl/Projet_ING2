@@ -23,7 +23,7 @@ app.config['SESSION_COOKIE_SECURE'] = True  # Marquer le cookie de session comme
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Définir la politique SameSite pour le cookie de session
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://root:cytech0001@localhost/app_db'  # Chemin de votre base de données MYSQL
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://root:Cytech0001$@localhost/app_db'  # Chemin de votre base de données MYSQL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 

@@ -5,17 +5,28 @@ from models import db, User, Contact, TokenBlocklist
 def init_routes(app):
     @app.route('/login', methods=['POST'])
     def login():
+        # Récupère les données JSON envoyées dans le corps de la requête POST
         req_data = request.get_json()
+        # Extrait le nom d'utilisateur du JSON reçu
         username = req_data['username']
+        # Extrait le mot de passe du JSON reçu
         password = req_data['password']
         
+        # Recherche dans la base de données un utilisateur ayant le nom d'utilisateur et le mot de passe fournis
         user = User.query.filter_by(username=username, password_hash=password).first()
-        if user:
-            # Si l'utilisateur est authentifié, créer un token JWT
-            access_token = create_access_token(identity=user.idUser)
-            return jsonify({'access_token': access_token}), 200
         
+        # Vérifie si un utilisateur correspondant aux informations fournies a été trouvé dans la base de données
+        if user:
+            # Affiche un message dans la console indiquant que l'utilisateur a été authentifié avec succès
+            print("User %s authenticated" % username)
+            # Crée un token d'accès JWT (JSON Web Token) pour cet utilisateur. L'identité du token est définie sur l'ID de l'utilisateur dans la base de données
+            access_token = create_access_token(identity=user.idUser)
+            # Renvoie le token d'accès JWT dans une réponse JSON avec le code d'état HTTP 200 (OK)
+            return jsonify({'access_token': access_token, 'idUser':user.idUser}), 200
+        
+        # Si l'utilisateur n'est pas trouvé dans la base de données ou si les informations d'identification sont incorrectes, renvoie un message d'erreur JSON avec le code d'état HTTP 401 (Unauthorized)
         return jsonify({'message': 'Invalid credentials'}), 401
+
 
     # Route protégée nécessitant un token JWT valide
     @app.route('/protected', methods=['GET'])
@@ -29,13 +40,15 @@ def init_routes(app):
     def get_contacts():
         id_user = get_jwt_identity()
         user_contacts = (
-            db.session.query(User.username)
+            db.session.query(User.idUser, User.username)
             .join(Contact, User.idUser == Contact.id_contact)
             .filter(Contact.id_user == id_user)
             .all()
         )
-        contacts_list = [contact[0] for contact in user_contacts]
+        contacts_list = [{'id': contact[0], 'username': contact[1]} for contact in user_contacts]
         return jsonify({'contacts': contacts_list}), 200
+
+
 
     # Endpoint pour révoquer le token JWT actuel
     @app.route("/logout", methods=["POST"])
