@@ -47,6 +47,42 @@ def init_routes(app):
         db.session.commit()
         return jsonify(message="Token revoked"), 200
 
+    @app.route("/recent_messages", methods=["GET"])
+    @jwt_required()
+    def recent_messages():
+        id_user = get_jwt_identity()
+
+        # Sous-requête pour trouver le dernier message de chaque conversation
+        subq = db.session.query(
+            Message.id_conv,
+            db.func.max(Message.idMessage).label('max_id')
+        ).join(ConvMember, Message.id_conv == ConvMember.idConv)\
+        .filter(ConvMember.idUser == id_user)\
+        .group_by(Message.id_conv).subquery('latest_message')
+
+        # Requête principale pour obtenir les détails du dernier message de chaque conversation
+        last_messages = db.session.query(Message, Conv.name, Conv.type)\
+            .join(subq, Message.idMessage == subq.c.max_id)\
+            .join(Conv, Conv.idConv == Message.id_conv)\
+            .all()
+
+        # Formatage des résultats pour la réponse JSON
+        results = [
+            {
+                'conv_id': message[0].id_conv,
+                'conv_name': message[1],
+                'conv_type': message[2],
+                'last_message_id': message[0].idMessage,
+                'last_message_content': message[0].content,
+                'last_message_date': message[0].date.isoformat(),
+                'last_message_sender_id': message[0].id_sender
+            } for message in last_messages
+        ]
+
+        print(results)
+
+        return jsonify({'recent_messages': results}), 200
+
 
 # Callback pour vérifier si le token est révoqué
 """
