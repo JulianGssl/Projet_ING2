@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_github_version/models/conversation.dart'; // Make sure this path matches the location of your ChatConversation model
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-import 'addfriendpage.dart';
 import 'chatpage.dart';
 
 const String url = 'http://localhost:8000';
@@ -20,27 +20,27 @@ class ChatListPage extends StatefulWidget {
 }
 
 class _ChatListPageState extends State<ChatListPage> {
-  List<String> _contacts = []; // Liste des contacts
+
+  List<dynamic> recentMessages = []; // Variable pour stocker les messages récents
 
   @override
   void initState() {
     super.initState();
-    print("----------------- ChatListPage - initState -----------------");
     _fetchContacts(); // Appel à la méthode pour récupérer les contacts
   }
 
-  // Méthode pour récupérer les contacts depuis le serveur
   void _fetchContacts() async {
     final response = await http.get(
-      Uri.parse('$url/contacts'),
+      Uri.parse('$url/recent_messages'),
       headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
     );
     if (response.statusCode == 200) {
       final contentType = response.headers['content-type'];
       if (contentType != null && contentType.contains('application/json')) {
         final data = jsonDecode(response.body);
+        print(data);
         setState(() {
-          _contacts = List<String>.from(data['contacts']);
+          recentMessages = data['recent_messages']; // Affectation des données à la variable d'état
         });
       } else {
         print('Response is not in JSON format');
@@ -54,67 +54,111 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Text('Chats |'),
-            const SizedBox(
-                width: 8), // Ajoute un espacement entre le texte "Chats" et l'username
-            Text(
-              widget.username,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
+        title: Text('Messages'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.menu, color: Colors.grey),
+          onPressed: () {
+            // Handle your action
+          },
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: Icon(Icons.add, color: Colors.blue),
             onPressed: () {
-              // Implement search functionality here
+              // Handle your action
             },
           ),
         ],
       ),
-      body: ListView(
+      body: Column(
         children: [
-          // Afficher tous les contacts récupérés de la même manière
-          ..._contacts.map((contact) => _buildChatListItem(context, contact)),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddFriendPage()),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildChatListItem(BuildContext context, String roomName) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Colors.blue,
-          child: Icon(Icons.person), // Placeholder for user image
-        ),
-        title: Text(
-          roomName,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search for user',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[200],
+              ),
+            ),
           ),
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatPage(roomName)),
-          );
-          print("/chatlistpage.dart - roomName: $roomName");
-        },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Active users',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Handle your action
+                  },
+                  child: Text('see all'),
+                ),
+              ],
+            ),
+          ),
+          // Placeholder for active user circles
+          Container(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 5, // The number of active circles you want
+              itemBuilder: (context, index) {
+                return Container(
+                  width: 60,
+                  height: 60,
+                  margin: EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: AssetImage('assets/avatar_placeholder.png'), // Replace with your asset
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: recentMessages.length,
+              itemBuilder: (context, index) {
+                final message = recentMessages[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: message['avatar'],
+                  ),
+                  title: Text(message['conv_name']),
+                  subtitle: Text(message['last_message_content']),
+                  trailing: Text(message['last_message_date']),
+                  onTap: () => {
+                     Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatPage(
+                              message['conv_id'], // Assurez-vous que c'est la bonne manière d'accéder à l'ID du groupe
+                              message['conv_name'],
+                        )
+                      )
+                    ),
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
