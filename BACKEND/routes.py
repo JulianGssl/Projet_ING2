@@ -82,6 +82,43 @@ def init_routes(app):
         print(results)
 
         return jsonify({'recent_messages': results}), 200
+        
+    @app.route("/messages", methods=["POST"])
+    @jwt_required()
+    def messages():
+        print("TEST TEST TEST")
+        id_user = get_jwt_identity()
+        req_data = request.get_json()
+        id_conv = req_data['id_conv']
+        print(id_conv)
+
+        if not id_conv:
+            return jsonify({"error : Conversation ID is required"}), 400
+        
+        messages = db.session.query(Message.idMessage, Message.content, Message.date, Message.id_sender, User.username, User.email, Conv.idConv, Conv.name, Conv.type)\
+            .join(User, Message.id_sender == User.idUser)\
+            .join(Conv, Message.id_conv == Conv.idConv)\
+            .filter(Message.id_conv == id_conv)\
+            .order_by(Message.date.asc())\
+            .all()
+
+        # Format the messages for JSON response
+        messages_list = [{
+            'idMessage': message.idMessage,
+            'content': message.content,
+            'date': message.date.isoformat(),
+            'id_sender': message.id_sender,
+            'username': message.username,
+            'email': message.email,
+            'idConv': message.idConv,
+            'convName': message.name,
+            'convType': message.type,
+            'current_user': True if message.id_sender == id_user else False,  
+        } for message in messages]
+
+        print(messages_list)
+
+        return jsonify({"messages" : messages_list}), 200
 
 
 # Callback pour vérifier si le token est révoqué
