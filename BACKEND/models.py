@@ -7,24 +7,25 @@ db = SQLAlchemy()
 # Définir vos modèles SQLAlchemy ici
 
 class User(db.Model):
-    idUser = db.Column(db.Integer, primary_key=True)
+    idUser = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(45), nullable=True)
     email = db.Column(db.String(45), nullable=True)
-    password_hash = db.Column(db.String(45), nullable=True)
+    password_hash = db.Column(db.String(255), nullable=True)
+    salt = db.Column(db.String(255),nullable=True)
 
 class Contact(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_user = db.Column(db.Integer, db.ForeignKey('user.idUser'), nullable=True)
     id_contact = db.Column(db.Integer, nullable=True)
     user = db.relationship('User', foreign_keys=[id_user], backref=db.backref('contacts', lazy=True))
 
 class Conv(db.Model):
-    idConv = db.Column(db.Integer, primary_key=True)
+    idConv = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(45), nullable=True)
     type = db.Column(db.String(45), nullable=True)
 
 class ConvMember(db.Model):
-    idconvMember = db.Column(db.Integer, primary_key=True)
+    idconvMember = db.Column(db.Integer, primary_key=True, autoincrement=True)
     idConv = db.Column(db.Integer, db.ForeignKey('conv.idConv'), nullable=True)
     idUser = db.Column(db.Integer, db.ForeignKey('user.idUser'), nullable=True)
     role = db.Column(db.String(45), nullable=True)
@@ -32,7 +33,7 @@ class ConvMember(db.Model):
     user = db.relationship('User', foreign_keys=[idUser], backref=db.backref('conv_members', lazy=True))
 
 class Message(db.Model):
-    idMessage = db.Column(db.Integer, primary_key=True)
+    idMessage = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_conv = db.Column(db.Integer, db.ForeignKey('conv.idConv'), nullable=True)
     id_sender = db.Column(db.Integer, db.ForeignKey('user.idUser'), nullable=True)
     content = db.Column(db.String(300), nullable=True)
@@ -41,6 +42,6 @@ class Message(db.Model):
     sender = db.relationship('User', foreign_keys=[id_sender], backref=db.backref('sent_messages', lazy=True))
 
 class TokenBlocklist(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     jti = db.Column(db.String(36), nullable=False, unique=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
