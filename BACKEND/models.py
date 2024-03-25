@@ -24,6 +24,7 @@ class Conv(db.Model):
     type = db.Column(db.String(45), nullable=True)
 
 class ConvMember(db.Model):
+    __tablename__ = 'convmember'
     idconvMember = db.Column(db.Integer, primary_key=True)
     idConv = db.Column(db.Integer, db.ForeignKey('conv.idConv'), nullable=True)
     idUser = db.Column(db.Integer, db.ForeignKey('user.idUser'), nullable=True)
