@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from models import db, User, Contact, TokenBlocklist, Conv, ConvMember
+from models import db, User, Contact, TokenBlocklist, Conv, ConvMember, Message
 from Crypto.Hash import SHA256
 import os
 from sqlalchemy import or_, and_
