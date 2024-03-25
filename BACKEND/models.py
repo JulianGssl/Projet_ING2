@@ -25,6 +25,7 @@ class Conv(db.Model):
     type = db.Column(db.String(45), nullable=True)
 
 class ConvMember(db.Model):
+    __tablename__ = 'convmember'
     idconvMember = db.Column(db.Integer, primary_key=True, autoincrement=True)
     idConv = db.Column(db.Integer, db.ForeignKey('conv.idConv'), nullable=True)
     idUser = db.Column(db.Integer, db.ForeignKey('user.idUser'), nullable=True)
@@ -37,7 +38,7 @@ class Message(db.Model):
     id_conv = db.Column(db.Integer, db.ForeignKey('conv.idConv'), nullable=True)
     id_sender = db.Column(db.Integer, db.ForeignKey('user.idUser'), nullable=True)
     content = db.Column(db.String(300), nullable=True)
-    date = db.Column(db.DateTime, nullable=True)
+    date = db.Column(db.DateTime, nullable=True,default=datetime.now)
     conv = db.relationship('Conv', foreign_keys=[id_conv], backref=db.backref('messages', lazy=True))
     sender = db.relationship('User', foreign_keys=[id_sender], backref=db.backref('sent_messages', lazy=True))
 
