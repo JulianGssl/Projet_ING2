@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from models import db, User, Contact, TokenBlocklist
+from models import db, User, Contact, TokenBlocklist, Message, Conv, ConvMember
 
 def init_routes(app):
     @app.route('/login', methods=['POST'])
