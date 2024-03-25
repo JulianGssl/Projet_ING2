@@ -24,9 +24,11 @@ CREATE TABLE IF NOT EXISTS `app_db`.`user` (
   `idUser` INT NOT NULL AUTO_INCREMENT,
   `username` VARCHAR(45) NULL DEFAULT NULL,
   `email` VARCHAR(45) NULL DEFAULT NULL,
-  `password_hash` VARCHAR(45) NULL DEFAULT NULL,
+  `password_hash` VARCHAR(255) NULL DEFAULT NULL,
+  `salt` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`idUser`))
 ENGINE = InnoDB
+AUTO_INCREMENT = 12
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -48,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `app_db`.`contact` (
     FOREIGN KEY (`id_user`)
     REFERENCES `app_db`.`user` (`idUser`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 2
+AUTO_INCREMENT = 12
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -62,6 +64,7 @@ CREATE TABLE IF NOT EXISTS `app_db`.`conv` (
   `type` VARCHAR(45) NULL DEFAULT NULL,
   PRIMARY KEY (`idConv`))
 ENGINE = InnoDB
+AUTO_INCREMENT = 3
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -84,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `app_db`.`convmember` (
     FOREIGN KEY (`idUser`)
     REFERENCES `app_db`.`user` (`idUser`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 3
+AUTO_INCREMENT = 5
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -131,30 +134,12 @@ SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
--- ---------------------------------------------------
--- Insérer des valeurs dans la table `user`
-INSERT INTO app_db.user (idUser, username, email, password_hash) VALUES
-(1, 'Alice', 'alice@gmail.com', '123test'),
-(2, 'Bob', 'bob@gmail.com', '123test');
+INSERT INTO app_db.user (idUser, username, email, password_hash, salt) VALUES 
+(9,"Alice","alice@gmail.com","b670660b9bc04a0e27b88298b34c5feeb4dbe315cd8bdec2fc23319c3fde68ff","1450cba43e0dcad61467c6732fe5b7a7e8066cff29914901054764c7354065da"),
+(10,"Bob","bob@gmail.com","08d628a83a572296bd9d360da4505f4ecd4704e3152c69e8d1f4356137b52ce9","3997d842b8ba49b9d9635103e4c9b3a5670c6de2326c9ab8090c2acb494ab3a8"),
+(11,"Charly","charly@gmail.com","5bf74d36c50bb2701508241d5d4937bc36d88bfc107fc565c01a54f0d88a2e01","2f8fe3dcf083db95105b755f5bc549b2708a784324ac222b9ca4b4decb49c3b2");
 
--- Insérer des valeurs dans la table `contact`
-INSERT INTO app_db.contact (id, id_user, id_contact) VALUES
-(1, 1, 2),
-(2, 2, 1);
-
--- Insérer des valeurs dans la table `conv`
-INSERT INTO app_db.conv (idConv, name, type) VALUES
-(1, 'Group 1', ''),
-(2, 'Group 2', '');
-
--- Insérer des valeurs dans la table `conv_member`
-INSERT INTO app_db.convmember (idconvMember, idConv, idUser, role) VALUES
-(1, 1, 1, ''),
-(2, 1, 2, ''),
-(3, 2, 1, ''),
-(4, 2, 2, '');
-
--- Insérer des valeurs dans la table `message`
-INSERT INTO app_db.message (idMessage, id_conv, id_sender, content, date, is_read) VALUES
-(1, 1, 1, 'Hello, how are you?', '2024-03-09 12:00:00',1),
-(2, 1, 2, 'Hi, I am fine thanks!', '2024-03-09 12:05:00',1);
+INSERT INTO app_db.contact (id, id_user, id_contact) VALUES 
+(4,9,10),
+(5,9,11),
+(6,10,9);
