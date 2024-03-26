@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_github_version/models/conversation.dart'; // Make sure this path matches the location of your ChatConversation model
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import 'chatpage.dart';
+import 'profilpage.dart';
 
 const String url = 'http://localhost:8000';
 
@@ -21,15 +22,15 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
 
-  List<dynamic> recentMessages = []; // Variable pour stocker les messages récents
+  List<dynamic> _recentMessages = []; // Variable pour stocker les messages récents
 
   @override
   void initState() {
     super.initState();
-    _fetchContacts(); // Appel à la méthode pour récupérer les contacts
+    _fetchRecentMessages(); // Appel à la méthode pour récupérer les contacts
   }
 
-  void _fetchContacts() async {
+  void _fetchRecentMessages() async {
     final response = await http.get(
       Uri.parse('$url/recent_messages'),
       headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
@@ -38,9 +39,8 @@ class _ChatListPageState extends State<ChatListPage> {
       final contentType = response.headers['content-type'];
       if (contentType != null && contentType.contains('application/json')) {
         final data = jsonDecode(response.body);
-        print(data);
         setState(() {
-          recentMessages = data['recent_messages']; // Affectation des données à la variable d'état
+          _recentMessages = data['recent_messages']; // Affectation des données à la variable d'état
         });
       } else {
         print('Response is not in JSON format');
@@ -64,11 +64,17 @@ class _ChatListPageState extends State<ChatListPage> {
           },
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.add, color: Colors.blue),
-            onPressed: () {
-              // Handle your action
+          GestureDetector(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage(sessionToken: widget.sessionToken)));
             },
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                // Ici, vous pouvez utiliser AssetImage ou NetworkImage en fonction de votre source d'image
+                backgroundImage: AssetImage('path/to/your/image'), // Remplacez 'path/to/your/image' par le chemin réel de votre image
+              ),
+            ),
           ),
         ],
       ),
@@ -133,9 +139,9 @@ class _ChatListPageState extends State<ChatListPage> {
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: recentMessages.length,
+              itemCount: _recentMessages.length,
               itemBuilder: (context, index) {
-                final message = recentMessages[index];
+                final message = _recentMessages[index];
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundImage: message['avatar'],
@@ -150,6 +156,7 @@ class _ChatListPageState extends State<ChatListPage> {
                             builder: (context) => ChatPage(
                               message['conv_id'], // Assurez-vous que c'est la bonne manière d'accéder à l'ID du groupe
                               message['conv_name'],
+                              widget.sessionToken
                         )
                       )
                     ),
