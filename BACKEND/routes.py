@@ -130,33 +130,125 @@ def init_routes(app):
         db.session.commit()
         return jsonify(message="Token revoked"), 200
 
+@app.route("/recent_messages", methods=["GET"])
+    @jwt_required()
+    def recent_messages():
+        id_user = get_jwt_identity()
 
-# Callback pour vérifier si le token est révoqué
-"""
-@jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header, jwt_payload):
-    jti = jwt_payload["jti"]
-    token = TokenBlocklist.query.filter_by(jti=jti).first()
-    return token is not None
+        # Sous-requête pour trouver le dernier message de chaque conversation
+        subq = db.session.query(
+            Message.id_conv,
+            db.func.max(Message.idMessage).label('max_id')
+        ).join(ConvMember, Message.id_conv == ConvMember.idConv)\
+        .filter(ConvMember.idUser == id_user)\
+        .group_by(Message.id_conv).subquery('latest_message')
 
-@app.route('/messages', methods=['GET'])
-def get_messages():
-    if 'username' in session:
-        username = session['username']
-        user_messages = [msg for msg in messages if msg['Sender'] == username or msg['Receiver'] == username]
-        return jsonify({'messages': user_messages}), 200
-    else:
-        return jsonify({'message': 'Unauthorized access'}), 401
+        # Requête principale pour obtenir les détails du dernier message de chaque conversation
+        last_messages = db.session.query(Message, Conv.name, Conv.type)\
+            .join(subq, Message.idMessage == subq.c.max_id)\
+            .join(Conv, Conv.idConv == Message.id_conv)\
+            .all()
 
-@app.route('/send_message', methods=['POST'])
-def send_message():
-    if 'username' in session:
+        # Formatage des résultats pour la réponse JSON
+        results = [
+            {
+                'conv_id': message[0].id_conv,
+                'conv_name': message[1],
+                'conv_type': message[2],
+                'last_message_id': message[0].idMessage,
+                'last_message_content': message[0].content,
+                'last_message_date': message[0].date.isoformat(),
+                'last_message_sender_id': message[0].id_sender
+            } for message in last_messages
+        ]
+
+        print(results)
+
+        return jsonify({'recent_messages': results}), 200
+
+    @app.route("/messages", methods=["POST"])
+    @jwt_required()
+    def messages():
+        print("TEST TEST TEST")
+        id_user = get_jwt_identity()
         req_data = request.get_json()
-        sender = session['username']
-        receiver = req_data['receiver']
-        content = req_data['content']
-        messages.append({'Sender': sender, 'Receiver': receiver, 'Content': content})
-        return jsonify({'message': 'Message sent successfully'}), 200
-    else:
-        return jsonify({'message': 'Unauthorized access'}), 401
-"""
+        id_conv = req_data['id_conv']
+        print(id_conv)
+
+        if not id_conv:
+            return jsonify({"error : Conversation ID is required"}), 400
+
+        messages = db.session.query(Message.idMessage, Message.content, Message.date, Message.id_sender, User.username, User.email, Conv.idConv, Conv.name, Conv.type)\
+            .join(User, Message.id_sender == User.idUser)\
+            .join(Conv, Message.id_conv == Conv.idConv)\
+            .filter(Message.id_conv == id_conv)\
+            .order_by(Message.date.asc())\
+            .all()
+
+        # Format the messages for JSON response
+        messages_list = [{
+            'idMessage': message.idMessage,
+            'content': message.content,
+            'date': message.date.isoformat(),
+            'id_sender': message.id_sender,
+            'username': message.username,
+            'email': message.email,
+            'idConv': message.idConv,
+            'convName': message.name,
+            'convType': message.type,
+            'current_user': True if message.id_sender == id_user else False,  
+        } for message in messages]
+
+        print(messages_list)
+
+        return jsonify({"messages" : messages_list}), 200
+
+    @app.route("/get_profile", methods=["GET"])
+    @jwt_required()
+    def get_profile():
+        id_user = get_jwt_identity()
+        user = User.query.filter_by(idUser=id_user).first()
+
+        if user:
+            user_data = {
+                "username": user.username,
+                "email": user.email,
+            }
+            return jsonify({"user_data": user_data}), 200
+
+        return jsonify({"message": "User not found"}), 404
+
+
+
+    @app.route("/edit_profile", methods=["POST"])
+    @jwt_required()
+    def edit_profile():
+        id_user = jwt_required()
+        id_user = get_jwt_identity()
+        req_data = request.get_json()
+        print(req_data)
+        username = req_data['username']
+        email = req_data['email']
+        password = req_data['password']
+        current_password = req_data['currentPassword']
+
+        user = User.query.filter_by(idUser=id_user).first()
+
+
+        stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
+        stored_password_hash = user.password_hash
+        #on compare le hash du mdp rentré et le mdp hashé dans la bdd
+        hashed_password=hashPassword(current_password,stored_salt)
+
+        if(stored_password_hash==hashed_password):
+            user.username = username
+            user.email = email
+            user.password_hash = hashPassword(password, stored_salt)
+
+            db.session.commit()
+
+            return jsonify({"message": "User update successfully"}), 200
+
+
+        return jsonify({"message": "User not found"}), 404
+
