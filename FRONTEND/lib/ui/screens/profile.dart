@@ -1,24 +1,16 @@
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-void main() {
-  runApp(MyApp());
-}
+import 'editprofilpage.dart';
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: ProfilePage(),
-      theme: ThemeData.light(),
-    );
-  }
-}
 
 class ProfilePage extends StatefulWidget {
+  final String sessionToken;
+
+  const ProfilePage({super.key, required this.sessionToken});
+
+
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
@@ -100,62 +92,71 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildThemeModeSwitch() {
-  return Padding(
-    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: Container(
-      height: 56, // Hauteur fixe pour tous les éléments d'entrée
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade400),
-        borderRadius: BorderRadius.circular(30.0),
-      ),
-      child: Row(
-        children: <Widget>[
-          SizedBox(width: 16),
-          Icon(Icons.nightlight_round, color: Colors.black),
-          SizedBox(width: 8),
-          Text(
-            'Dark Mode',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        height: 56, // Hauteur fixe pour tous les éléments d'entrée
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(30.0),
+        ),
+        child: Row(
+          children: <Widget>[
+            SizedBox(width: 16),
+            Icon(Icons.nightlight_round, color: Colors.black),
+            SizedBox(width: 8),
+            Text(
+              'Dark Mode',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black,
+              ),
             ),
-          ),
-          Spacer(),
-          Transform.scale(
-            scale: 0.9, // Ajustez la taille du switch si nécessaire
-            child: CupertinoSwitch(
-              value: _isDarkMode,
-              onChanged: (bool value) {
-                setState(() {
-                  _isDarkMode = value;
-                });
-              },
-              activeColor: Colors.black,
-              trackColor: Colors.grey.shade400,
+            Spacer(),
+            Transform.scale(
+              scale: 0.9, // Ajustez la taille du switch si nécessaire
+              child: CupertinoSwitch(
+                value: _isDarkMode,
+                onChanged: (bool value) {
+                  setState(() {
+                    _isDarkMode = value;
+                  });
+                },
+                activeColor: Colors.black,
+                trackColor: Colors.grey.shade400,
+              ),
             ),
-          ),
-          SizedBox(width: 16),
-        ],
+            SizedBox(width: 16),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-Widget _buildOption(BuildContext context, IconData icon, String text) {
-  return Padding(
-    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: Container(
-      height: 56, // Hauteur fixe pour tous les éléments d'entrée
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade400),
-        borderRadius: BorderRadius.circular(30.0),
+  Widget _buildOption(BuildContext context, IconData icon, String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(30.0),
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: Colors.black),
+          title: Text(text),
+          onTap: () {
+            if (text == 'Edit Profile') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EditProfilePage(sessionToken: widget.sessionToken)),
+              );
+            }
+            // Ajoutez d'autres conditions pour les autres options si nécessaire
+          },
+        ),
       ),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.black),
-        title: Text(text),
-        onTap: () {},
-      ),
-    ),
-  );
-}
+    );
+  }
+
 }
