@@ -121,6 +121,56 @@ def init_routes(app):
         return jsonify({"messages" : messages_list}), 200
 
 
+    @app.route("/get_profile", methods=["GET"])
+    @jwt_required()
+    def get_profile():
+        id_user = get_jwt_identity()
+        user = User.query.filter_by(idUser=id_user).first()
+
+        if user:
+            user_data = {
+                "username": user.username,
+                "email": user.email,
+            }
+            return jsonify({"user_data": user_data}), 200
+        
+        return jsonify({"message": "User not found"}), 404
+
+
+    
+    @app.route("/edit_profile", methods=["POST"])
+    @jwt_required()
+    def edit_profile():
+        id_user = jwt_required()
+        id_user = get_jwt_identity()
+        req_data = request.get_json()
+        print(req_data)
+        username = req_data['username']
+        email = req_data['email']
+        password = req_data['password']
+        current_password = req_data['currentPassword']
+
+        user = User.query.filter_by(idUser=id_user).first()
+
+
+        stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
+        stored_password_hash = user.password_hash
+        #on compare le hash du mdp rentré et le mdp hashé dans la bdd
+        hashed_password=hashPassword(current_password,stored_salt)
+        
+        if(stored_password_hash==hashed_password):
+            user.username = username
+            user.email = email
+            user.password_hash = hashPassword(password, stored_salt)
+
+            db.session.commit()
+
+            return jsonify({"message": "User update successfully"}), 200
+
+        
+        return jsonify({"message": "User not found"}), 404
+
+
 # Callback pour vérifier si le token est révoqué
 """
 @jwt.token_in_blocklist_loader
