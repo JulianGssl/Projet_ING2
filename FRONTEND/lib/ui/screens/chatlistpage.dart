@@ -78,6 +78,17 @@ class _ChatListPageState extends State<ChatListPage> {
           ),
         ],
       ),
+       floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    AddFriendPage(sessionToken: widget.sessionToken)),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
       body: Column(
         children: [
           Padding(
