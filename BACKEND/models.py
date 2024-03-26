@@ -23,6 +23,7 @@ class Conv(db.Model):
     idConv = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(45), nullable=True)
     type = db.Column(db.String(45), nullable=True)
+    creation_date= db.Column(db.DateTime, nullable=True, default=datetime.now)
 
 class ConvMember(db.Model):
     __tablename__ = 'convmember'
