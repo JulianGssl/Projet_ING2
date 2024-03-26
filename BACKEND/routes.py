@@ -147,8 +147,8 @@ def init_routes(app):
         print(req_data)
         username = req_data['username']
         email = req_data['email']
-        password = req_data['password']
         current_password = req_data['currentPassword']
+        password = req_data['password'] if req_data['password'] != '' else current_password
 
         user = User.query.filter_by(idUser=id_user).first()
 
