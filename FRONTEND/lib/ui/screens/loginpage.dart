@@ -5,19 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import 'chatlistpage.dart';
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: AuthenticationScreen(),
-    );
-  }
-}
+import '../../models/user.dart';
 
 class AuthenticationScreen extends StatefulWidget {
   @override
@@ -202,12 +190,19 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       // Navigation vers la page ChatListPage
       var responseData = json.decode(response.body);
       String sessionToken = responseData['access_token'];
+      int userId =
+          responseData['idUser']; // Récupération de l'ID de l'utilisateur
+      String username =
+          '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
+      // Création de l'objet User de l'utilisateur connecté
+      User loggedUser = User(id: userId, username: username);
+      print("User : ${loggedUser.id} | ${loggedUser.username}");
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => ChatListPage(
             sessionToken: sessionToken,
-            username: _usernameController.text,
+            currentUser: loggedUser, // Passage de l'objet user à ChatListPage
             socket: socket!,
           ),
         ),
