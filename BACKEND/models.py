@@ -9,9 +9,12 @@ db = SQLAlchemy()
 class User(db.Model):
     idUser = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(45), nullable=True)
-    email = db.Column(db.String(45), nullable=True)
+    email = db.Column(db.String(45), nullable=True, unique=True)
+    is_validate=db.Column(db.Boolean, default=False)
     password_hash = db.Column(db.String(255), nullable=True)
     salt = db.Column(db.String(255),nullable=True)
+    public_key = db.Column(db.String(4096),nullable=True)
+    private_key=db.Column(db.String(4096),nullable=True)
 
 class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
