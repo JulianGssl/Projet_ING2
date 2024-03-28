@@ -4,6 +4,14 @@ from models import db, User, Contact, TokenBlocklist, Conv, ConvMember, Message
 from Crypto.Hash import SHA256
 import os
 from sqlalchemy import or_, and_
+import base64
+
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
 
 def init_routes(app):
     @app.route('/login', methods=['POST'])
@@ -24,7 +32,9 @@ def init_routes(app):
             hashed_password=hashPassword(password,stored_salt)
             if(stored_password_hash==hashed_password):
                 # Crée un token d'accès JWT (JSON Web Token) pour cet utilisateur. L'identité du token est définie sur l'ID de l'utilisateur dans la base de données
-                access_token = create_access_token(identity=user.idUser)
+                private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
+                access_token = create_access_token(identity=user.idUser,additional_claims={"private_key" : private_key})
+               
                 # Renvoie le token d'accès JWT dans une réponse JSON avec le code d'état HTTP 200 (OK)
                 return jsonify({'access_token': access_token, 'idUser':user.idUser}), 200
         
@@ -41,16 +51,77 @@ def init_routes(app):
         #Salage et hachage du mdp
         salt = os.urandom(32)
         hashed_password = hashPassword(password, salt)
+        public_key,private_key=generate_keys()
         
-        new_user = User(username=username, email=email, password_hash=hashed_password, salt=salt.hex())
+        private_key_secure=encrypt_private_key(private_key,password,salt)
+        # Conversion de la clé privée chiffrée en base64
+        private_key_base64 = base64.b64encode(private_key_secure).decode('utf-8')
+        
+        new_user = User(username=username, email=email, password_hash=hashed_password, salt=salt.hex(), public_key=public_key, private_key=private_key_base64)
+        
         db.session.add(new_user)
         db.session.commit()
         user_id = new_user.idUser
         if new_user:
-            access_token = create_access_token(identity=user_id)
+            access_token = create_access_token(identity=user_id,additional_claims={"private_key" : private_key})
             return jsonify({'access_token': access_token}), 200
         return jsonify({'message': 'Invalid credentials'}), 401
 
+    def generate_keys():
+        # Générer une paire de clés RSA
+        privateKey = rsa.generate_private_key(
+            public_exponent=65537,  # Exposant public couramment utilisé
+            key_size=2048,          # Taille de la clé en bits
+            backend=default_backend()
+        )
+        # Obtenir la clé publique à partir de la clé privée
+        publicKey = privateKey.public_key()
+        # Sérialiser la clé publique au format PEM
+        publicKey_pem = publicKey.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        
+        privateKey_pem = privateKey.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+        ).decode()
+        
+        return publicKey_pem, privateKey_pem
+    
+    def derive_key(password, salt):
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+            backend=default_backend()
+        )
+        return kdf.derive(password.encode())
+
+    def encrypt_private_key(private_key, password,salt):
+        key = derive_key(password, salt)
+        iv = os.urandom(16)
+        cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        encrypted_private_key = encryptor.update(private_key.encode()) + encryptor.finalize()
+        return encrypted_private_key
+    
+    def decrypt_private_key(encrypted_private_key_base64, salt, password):
+        encrypted_private_key = base64.b64decode(encrypted_private_key_base64)
+        # Dérivation de la clé de chiffrement à partir du mot de passe et du sel
+        key = derive_key(password, salt)
+        # Générer un vecteur d'initialisation (IV) aléatoire
+        iv = os.urandom(16)
+        # Créer un objet Cipher avec l'algorithme AES en mode CFB
+        cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+        # Créer un objet decryptor pour déchiffrer les données
+        decryptor = cipher.decryptor()
+        # Déchiffrer la clé privée
+        decrypted_private_key = decryptor.update(encrypted_private_key) + decryptor.finalize()
+        # Retourner la clé privée déchiffrée
+        return decrypted_private_key
 
     def hashPassword(password, salt):
         # Ajouter le sel au mot de passe
