@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import 'ui/screens/loginpage.dart';
 
-const String url = 'http://localhost:8000';
 
 // Créez un objet SecurityContext
 SecurityContext securityContext = SecurityContext();
