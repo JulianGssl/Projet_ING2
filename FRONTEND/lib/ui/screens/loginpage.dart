@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import 'chatlistpage.dart';
 import '../../models/user.dart';
+import '../../models/url.dart';
 
 class AuthenticationScreen extends StatefulWidget {
   @override
@@ -18,9 +18,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordControllerSignUp = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  // ignore: unused_field
   String _errorMessage = '';
-
-  IO.Socket? socket;
 
   @override
   void dispose() {
@@ -190,10 +189,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       // Navigation vers la page ChatListPage
       var responseData = json.decode(response.body);
       String sessionToken = responseData['access_token'];
-      int userId =
-          responseData['idUser']; // Récupération de l'ID de l'utilisateur
-      String username =
-          '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
+      int userId = responseData['idUser']; // Récupération de l'ID de l'utilisateur
+      String username = '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
       // Création de l'objet User de l'utilisateur connecté
       User loggedUser = User(id: userId, username: username);
       print("User : ${loggedUser.id} | ${loggedUser.username}");
@@ -203,13 +200,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
           builder: (context) => ChatListPage(
             sessionToken: sessionToken,
             currentUser: loggedUser, // Passage de l'objet user à ChatListPage
-            socket: socket!,
           ),
         ),
       );
-      // Initialisation de la connexion Socket.IO
-      print("/loginpage - calling _initSocketIO");
-      _initSocketIO();
     } else {
       print("Invalid credentials received, updating error message");
       setState(() {
@@ -229,42 +222,29 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       headers: {'Content-Type': 'application/json'},
     );
     if (response.statusCode == 200) {
-      print("Inscritpion successful, navigating to ChatListPage");
+      print("Login successful, navigating to ChatListPage");
       // Navigation vers la page ChatListPage
       var responseData = json.decode(response.body);
       String sessionToken = responseData['access_token'];
+      int userId = responseData['idUser']; // Récupération de l'ID de l'utilisateur
+      String username = '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
+      // Création de l'objet User de l'utilisateur connecté
+      User loggedUser = User(id: userId, username: username);
+      print("User : ${loggedUser.id} | ${loggedUser.username}");
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => ChatListPage(
             sessionToken: sessionToken,
-            username: _usernameController.text,
-            socket: socket!,
+            currentUser: loggedUser,
           ),
         ),
       );
-      // Initialisation de la connexion Socket.IO
-      print("/loginpage - calling _initSocketIO");
-      _initSocketIO();
     } else {
       print("Invalid credentials received, updating error message");
       setState(() {
         _errorMessage = 'Identifiants invalides. Veuillez réessayer.';
       });
     }
-  }
-
-  void _initSocketIO() {
-    // Initialisation de la connexion Socket.IO
-    socket = IO.io('http://localhost:8000', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-    });
-    // Connexion au serveur Socket.IO
-    socket?.connect();
-    socket?.on('connectResponse', (data) {
-      print('Connected to the server');
-      print('Received message: $data');
-    });
   }
 }

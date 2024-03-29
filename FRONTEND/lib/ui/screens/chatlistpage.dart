@@ -1,39 +1,35 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'addfriendpage.dart';
 
 import 'chatpage.dart';
-
-const String url = 'http://localhost:8000';
+import '../../models/user.dart';
+import '../../models/url.dart';
 
 class ChatListPage extends StatefulWidget {
   final String sessionToken;
-  final String username;
-  final IO.Socket socket;
+  final User currentUser;
 
   const ChatListPage(
       {super.key,
       required this.sessionToken,
-      required this.username,
-      required this.socket});
+      required this.currentUser});
 
   @override
   _ChatListPageState createState() => _ChatListPageState();
 }
 
 class _ChatListPageState extends State<ChatListPage> {
-  List<dynamic> recentMessages =
-      []; // Variable pour stocker les messages récents
+  List<dynamic> recentMessages = []; // Variable pour stocker les messages récents
 
   @override
   void initState() {
     super.initState();
-    _fetchContacts(); // Appel à la méthode pour récupérer les contacts
+    _fetchConversation(); // Appel à la méthode pour récupérer les conversations
   }
-
-  void _fetchContacts() async {
+  
+  void _fetchConversation() async {
     final response = await http.get(
       Uri.parse('$url/recent_messages'),
       headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
@@ -44,14 +40,28 @@ class _ChatListPageState extends State<ChatListPage> {
         final data = jsonDecode(response.body);
         print(data);
         setState(() {
-          recentMessages = data[
-              'recent_messages']; // Affectation des données à la variable d'état
+          recentMessages = data['recent_messages'];
         });
       } else {
         print('Response is not in JSON format');
       }
     } else {
       print('Failed to load contacts: ${response.statusCode}');
+    }
+  }
+
+  // Fonction pour récupérer les informations sur l'interlocuteur à partir de la base de données
+  Future<User> fetchOtherUser(String otherUserId) async {
+    print("Fetching Otheruser...");
+    final response = await http.get(
+      Uri.parse('$url/fetchuser/$otherUserId'),
+      headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return User.fromJson(data);
+    } else {
+      throw Exception('Failed to load user');
     }
   }
 
@@ -138,11 +148,14 @@ class _ChatListPageState extends State<ChatListPage> {
                   margin: EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    image: DecorationImage(
+                    color: Colors.grey,
+                   /* image: DecorationImage(
                       image: AssetImage(
-                          'assets/avatar_placeholder.png'), // Replace with your asset
+                          'assets/avatar_placeholder.png'
+                          ), // Replace with your asset
                       fit: BoxFit.cover,
-                    ),
+                    ),*/
+
                   ),
                 );
               },
@@ -160,15 +173,33 @@ class _ChatListPageState extends State<ChatListPage> {
                   title: Text(message['conv_name']),
                   subtitle: Text(message['last_message_content']),
                   trailing: Text(message['last_message_date']),
-                  onTap: () => {
-                    Navigator.push(
+                  onTap: () async {
+                    try {
+                      print("onTap Conversation");
+                      // Naviguer vers la page de chat avec les informations nécessaires
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => ChatPage(
-                                message[
-                                    'conv_id'], // Assurez-vous que c'est la bonne manière d'accéder à l'ID du groupe
-                                message['conv_name'],
-                                widget.sessionToken))),
+                          builder: (context) {
+                            // Imprimer toutes les données envoyées à la nouvelle page
+                            print('Current User: ${widget.currentUser}');
+                            print('Conv ID: ${message['conv_id']}');
+                            print('Conv Name: ${message['conv_name']}');
+                            print('Session Token: ${widget.sessionToken}');
+                            
+                            return ChatPage(
+                              currentUser: widget.currentUser,
+                              convId: message['conv_id'], 
+                              convName: message['conv_name'],
+                              sessionToken: widget.sessionToken,
+                            );
+                          },
+                        ),
+                      );
+                    } catch (e) {
+                      // Gérer les erreurs
+                      print('Error: $e');
+                    }
                   },
                 );
               },
