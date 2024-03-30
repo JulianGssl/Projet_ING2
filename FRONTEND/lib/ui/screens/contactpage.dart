@@ -3,7 +3,7 @@ import 'package:flutter_github_version/ui/screens/chatpage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-const String url = 'http://localhost:8000';
+import '../../models/url.dart';
 
 class ContactPage extends StatefulWidget {
   final String sessionToken;
