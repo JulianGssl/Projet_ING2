@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+èimport 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -247,20 +247,21 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
         // Navigation vers la page ChatListPage
         var responseData = json.decode(response.body);
         String sessionToken = responseData['access_token'];
+        int userId = responseData['idUser']; // Récupération de l'ID de l'utilisateur
+        String username = '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
+        // Création de l'objet User de l'utilisateur connecté
+        User loggedUser = User(id: userId, username: username);
+        print("User : ${loggedUser.id} | ${loggedUser.username}");
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => ChatListPage(
               sessionToken: sessionToken,
-              username: _usernameController.text,
-              socket: socket!,
+              currentUser: loggedUser, // Passage de l'objet user à ChatListPage
             ),
           ),
         );
-        // Initialisation de la connexion Socket.IO
-        print("/loginpage - calling _initSocketIO");
-        _initSocketIO();
-      } else {
+    } else {
         print("Invalid credentials received");
         setState(() {
           _errorMessage = 'Invalid credentials. Please try again.';
@@ -336,19 +337,5 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
           'Please enter a password of at least 12 characters, with at least one number, one uppercase letter and one special character';
       setState(() {});
     }
-  }
-
-  void _initSocketIO() {
-    // Initialisation de la connexion Socket.IO
-    socket = IO.io('http://localhost:8000', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-    });
-    // Connexion au serveur Socket.IO
-    socket?.connect();
-    socket?.on('connectResponse', (data) {
-      print('Connected to the server');
-      print('Received message: $data');
-    });
   }
 }
