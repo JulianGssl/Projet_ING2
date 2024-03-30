@@ -12,8 +12,9 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from flask_mail import Message
 
-def init_routes(app):
+def init_routes(app, mail):
     @app.route('/login', methods=['POST'])
     def login():
         # Récupère les données JSON envoyées dans le corps de la requête POST
@@ -26,19 +27,20 @@ def init_routes(app):
         # Recherche dans la base de données un utilisateur ayant le nom d'utilisateur et le mot de passe fournis
        user = User.query.filter_by(username=username).first()
         if user:
-            stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
-            stored_password_hash = user.password_hash
-            #on compare le hash du mdp rentré et le mdp hashé dans la bdd
-            hashed_password=hashPassword(password,stored_salt)
-            if(stored_password_hash==hashed_password):
-                # Crée un token d'accès JWT (JSON Web Token) pour cet utilisateur. L'identité du token est définie sur l'ID de l'utilisateur dans la base de données
-                private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
-                access_token = create_access_token(identity=user.idUser,additional_claims={"private_key" : private_key})
-               
-                # Renvoie le token d'accès JWT dans une réponse JSON avec le code d'état HTTP 200 (OK)
-                return jsonify({'access_token': access_token, 'idUser':user.idUser}), 200
-        
-        # Si l'utilisateur n'est pas trouvé dans la base de données ou si les informations d'identification sont incorrectes, renvoie un message d'erreur JSON avec le code d'état HTTP 401 (Unauthorized)
+            if user.is_validate==True:
+                stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
+                stored_password_hash = user.password_hash
+
+                #on compare le hash du mdp rentré et le mdp hashé dans la bdd
+                hashed_password=hashPassword(password,stored_salt)
+                if(stored_password_hash==hashed_password):
+                    
+                    private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
+                    # Si l'utilisateur est authentifié, créer un token JWT
+                    access_token = create_access_token(identity=user.idUser,additional_claims={"private_key" : private_key})
+                
+                    return jsonify({'access_token': access_token}), 200
+            
         return jsonify({'message': 'Invalid credentials'}), 401
     
     @app.route('/signUp', methods=['POST'])
@@ -58,14 +60,34 @@ def init_routes(app):
         private_key_base64 = base64.b64encode(private_key_secure).decode('utf-8')
         
         new_user = User(username=username, email=email, password_hash=hashed_password, salt=salt.hex(), public_key=public_key, private_key=private_key_base64)
-        
         db.session.add(new_user)
         db.session.commit()
         user_id = new_user.idUser
+        send_email(email,user_id) #Envoie du mail de confirmation
+        
         if new_user:
-            access_token = create_access_token(identity=user_id,additional_claims={"private_key" : private_key})
-            return jsonify({'access_token': access_token}), 200
+            return jsonify({'message':"Your account is awaiting validation, you have just received an email" }), 200
         return jsonify({'message': 'Invalid credentials'}), 401
+    
+    @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
+    def send_email(email_user, id_user):
+        msg = Message("Confirmation of your account",
+                    sender="whisper.confirm@gmail.com",
+                    recipients=[email_user])
+        msg.body = "Hello!\n\nHere is an email to confirm your Whisper's account, please click on this link: http://localhost:8000/emailConfirm?idUser=" + str(id_user)
+        
+        mail.send(msg)
+        return "Email sent successfully!"
+
+    
+    @app.route('/emailConfirm', methods=['GET'])      
+    def emailConfirm():
+        idUser = request.args.get('idUser')
+        user=db.session.query(User).filter(User.idUser == idUser).first()
+        if user:
+            user.is_validate=True
+            db.session.commit()
+            return jsonify({'message': 'Account validated'}), 200
 
     def generate_keys():
         # Générer une paire de clés RSA
