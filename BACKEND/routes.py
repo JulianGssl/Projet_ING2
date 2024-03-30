@@ -7,7 +7,7 @@ import flask_mail
 from pymysql import DBAPISet
 import base64
 from sqlalchemy.orm import aliased  
-
+from sqlalchemy import and_
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -53,11 +53,12 @@ def init_routes(app, mail):
         id_user = get_jwt_identity()
         
         users = User.query.filter(
-        (
+        and_(
             ~User.idUser.in_(db.session.query(Contact.id_contact).filter_by(id_user=id_user)),
             User.username.like(f'%{username}%'),
             User.idUser != id_user
-        )).limit(100)
+            )
+        ).limit(100)
         
         user_data = [{'id': user.idUser, 'username': user.username} for user in users]
         return jsonify({'users': user_data}), 200
