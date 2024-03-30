@@ -28,11 +28,14 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _passwordControllerSignUp = TextEditingController();
+  final TextEditingController _passwordControllerSignUp =
+      TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   String _errorMessage = '';
+  String _successSignUp = '';
 
   IO.Socket? socket;
+  int nbLoginTry = 0;
 
   @override
   void dispose() {
@@ -79,36 +82,76 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   }
 
   Widget _buildLoginButton(String text) {
-    return ElevatedButton(
-      onPressed: () {
-        _handleLoginButtonPressed();
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30.0),
+    return Column(
+      children: [
+        ElevatedButton(
+          onPressed: () {
+            _handleLoginButtonPressed();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.0),
+            ),
+            padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
+          ),
+          child: Text(text),
         ),
-        padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
-      ),
-      child: Text(text),
+        if (nbLoginTry > 3)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Too many connection attempts. Please try again in 30 seconds.',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        if (_errorMessage.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              _errorMessage,
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildSignUpButton(String text) {
-    return ElevatedButton(
-      onPressed: () { _handleSignUpButtonPressed();
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30.0),
+    return Column(
+      children: [
+        ElevatedButton(
+          onPressed: () {
+            _handleSignUpButtonPressed();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.0),
+            ),
+            padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
+          ),
+          child: Text(text),
         ),
-        padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
-      ),
-      child: Text(text),
+        if (_errorMessage.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              _errorMessage,
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        if (_successSignUp.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              _errorMessage,
+              style: TextStyle(color: Colors.green),
+            ),
+          ),
+      ],
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -189,73 +232,109 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
 
   void _handleLoginButtonPressed() async {
     print("Trying to login...");
-    var response = await http.post(
-      Uri.parse('$url/login'),
-      body: jsonEncode({
-        'username': _usernameController.text,
-        'password': _passwordController.text
-      }),
-      headers: {'Content-Type': 'application/json'},
-    );
-    if (response.statusCode == 200) {
-      print("Login successful, navigating to ChatListPage");
-      // Navigation vers la page ChatListPage
-      var responseData = json.decode(response.body);
-      String sessionToken = responseData['access_token'];
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChatListPage(
-            sessionToken: sessionToken,
-            username: _usernameController.text,
-            socket: socket!,
-          ),
-        ),
+    nbLoginTry++;
+    if (nbLoginTry <= 3) {
+      var response = await http.post(
+        Uri.parse('$url/login'),
+        body: jsonEncode({
+          'username': _usernameController.text,
+          'password': _passwordController.text
+        }),
+        headers: {'Content-Type': 'application/json'},
       );
-      // Initialisation de la connexion Socket.IO
-      print("/loginpage - calling _initSocketIO");
-      _initSocketIO();
+      if (response.statusCode == 200) {
+        print("Login successful, navigating to ChatListPage");
+        // Navigation vers la page ChatListPage
+        var responseData = json.decode(response.body);
+        String sessionToken = responseData['access_token'];
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatListPage(
+              sessionToken: sessionToken,
+              username: _usernameController.text,
+              socket: socket!,
+            ),
+          ),
+        );
+        // Initialisation de la connexion Socket.IO
+        print("/loginpage - calling _initSocketIO");
+        _initSocketIO();
+      } else {
+        print("Invalid credentials received");
+        setState(() {
+          _errorMessage = 'Invalid credentials. Please try again.';
+          _usernameController.text =
+              ''; // Vide le champ de saisie du nom d'utilisateur
+          _passwordController.text = '';
+        });
+        setState(() {});
+      }
     } else {
-      print("Invalid credentials received, updating error message");
       setState(() {
-        _errorMessage = 'Identifiants invalides. Veuillez réessayer.';
+        _usernameController.text =
+            ''; // Vide le champ de saisie du nom d'utilisateur
+        _passwordController.text = '';
       });
+      await Future.delayed(Duration(seconds: 30));
+      // Réinitialiser le nombre de tentatives de connexion
+      nbLoginTry = 0;
+      setState(() {});
     }
   }
 
+  bool verifPassword(String password) {
+    if (password.length < 12) {
+      return false;
+    }
+    final RegExp majusculeRegex = RegExp(r'[A-Z]');
+    final RegExp numberRegex = RegExp(r'\d');
+    final RegExp caractereSpecialRegex = RegExp(r'[!@#$%^&*(),.?":{}|<>]');
+    if (!majusculeRegex.hasMatch(password)) {
+      return false;
+    }
+    if (!numberRegex.hasMatch(password)) {
+      return false;
+    }
+
+    // Vérifie la présence d'un caractère spécial
+    if (!caractereSpecialRegex.hasMatch(password)) {
+      return false;
+    }
+
+    return true;
+  }
+
   void _handleSignUpButtonPressed() async {
-    var response = await http.post(
-      Uri.parse('$url/signUp'),
-      body: jsonEncode({
-        'username': _nameController.text,
-        'email' : _emailController.text,
-        'password': _passwordControllerSignUp.text
-      }),
-      headers: {'Content-Type': 'application/json'},
-    );
-    if (response.statusCode == 200) {
-      print("Inscritpion successful, navigating to ChatListPage");
-      // Navigation vers la page ChatListPage
-      var responseData = json.decode(response.body);
-      String sessionToken = responseData['access_token'];
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChatListPage(
-            sessionToken: sessionToken,
-            username: _usernameController.text,
-            socket: socket!,
-          ),
-        ),
+    if (verifPassword(_passwordControllerSignUp.text)) {
+      var response = await http.post(
+        Uri.parse('$url/signUp'),
+        body: jsonEncode({
+          'username': _nameController.text,
+          'email': _emailController.text,
+          'password': _passwordControllerSignUp.text
+        }),
+        headers: {'Content-Type': 'application/json'},
       );
-      // Initialisation de la connexion Socket.IO
-      print("/loginpage - calling _initSocketIO");
-      _initSocketIO();
+      if (response.statusCode == 200) {
+        print("Inscritpion successful, navigating to ChatListPage");
+        // Navigation vers la page ChatListPage
+        var responseData = json.decode(response.body);
+        _successSignUp = responseData['message'];
+        setState(() {
+          _nameController.text =
+              ''; // Vide le champ de saisie du nom d'utilisateur
+          _emailController.text = '';
+          _passwordControllerSignUp.text = '';
+        });
+        setState(() {});
+      } else {
+        print("Invalid credentials received, updating error message");
+      }
     } else {
-      print("Invalid credentials received, updating error message");
-      setState(() {
-        _errorMessage = 'Identifiants invalides. Veuillez réessayer.';
-      });
+      _errorMessage =
+          'Please enter a password of at least 12 characters, with at least one number, one uppercase letter and one special character';
+      setState(() {});
     }
   }
 
