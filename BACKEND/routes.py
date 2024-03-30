@@ -39,7 +39,7 @@ def init_routes(app, mail):
 
                     private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
                     # Si l'utilisateur est authentifié, créer un token JWT
-                    access_token = create_access_token(identity=user.idUser,additional_claims={"private_key" : private_key})
+                    access_token = create_access_token(identity=user.idUser,additional_claims={"idUser" : user.idUser, "private_key" : private_key})
 
                     return jsonify({'access_token': access_token}), 200
 
