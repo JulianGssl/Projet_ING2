@@ -146,7 +146,7 @@ INSERT INTO user (idUser, username, email, is_validate, password_hash, salt, pub
 
 INSERT INTO contact (id, id_user, id_contact) VALUES 
 (1,2,1),
-(2,1,12);
+(2,1,2);
 
 INSERT INTO conv (name, type, creation_date)
 VALUES ('Alice#1_Bob#2', 'private', '2024-03-28 12:00:00');
@@ -157,5 +157,5 @@ VALUES (1, 1, ''),
 
 INSERT INTO message (id_conv, id_sender, content, date, is_read)
 VALUES (1, 1, 'Hello how are you today my dear friend ?', '2024-03-28 13:00:00', TRUE),
-       (1, 2, 'I'm fine thank you and you ?', '2024-03-28 13:05:00', TRUE);
+       (1, 2, "I'm fine thank you and you ?", '2024-03-28 13:05:00', TRUE);
    
