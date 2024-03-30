@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../models/user.dart';
+import '../../models/url.dart';
 import 'package:jwt_decode/jwt_decode.dart';
 
 import 'chatlistpage.dart';
