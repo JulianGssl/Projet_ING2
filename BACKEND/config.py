@@ -13,3 +13,8 @@ class Config:
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = 'None'
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = 'whisper.confirm@gmail.com'
+    MAIL_PASSWORD = 'iuho gdls inkg omeg'
