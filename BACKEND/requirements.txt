@@ -7,3 +7,4 @@ flask-session==0.4.0
 cryptography==35.0.0
 mysqlclient==2.2.4
 pycryptodome==3.20.0
+flask_mail
