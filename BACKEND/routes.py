@@ -67,14 +67,30 @@ def init_routes(app, mail):
     @app.route('/addFriend', methods=['POST'])
     @jwt_required()
     def addFriend():
-        req_data = request.get_json()
-        username = req_data['username']
+       req_data = request.get_json()
+        contact_username = req_data['username']
         id_contact= req_data['id_contact']
+        
         id_user = get_jwt_identity()
+        user = User.query.filter_by(idUser=id_user).first()
+        username=user.username
         
         new_contact = Contact(id_user=id_user, id_contact=id_contact)
+        new_contact2= Contact(id_user=id_contact,id_contact=id_user)
+        conv_name="_".join(sorted([username+"#"+str(id_user),contact_username+"#"+str(id_contact)]))
+        new_conv= Conv(name=conv_name,type="private")
+        db.session.add(new_conv)
         db.session.add(new_contact)
+        db.session.add(new_contact2)
         db.session.commit()
+        
+        new_conv_id=new_conv.idConv
+        new_conv_member1=ConvMember(idConv=new_conv_id,idUser=id_user)
+        new_conv_member2=ConvMember(idConv=new_conv_id,idUser=id_contact)
+        db.session.add(new_conv_member1)
+        db.session.add(new_conv_member2)
+        db.session.commit()
+        
         
         if new_contact:
             access_token = create_access_token(identity=id_user)
