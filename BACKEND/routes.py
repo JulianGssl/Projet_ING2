@@ -1,9 +1,10 @@
 from flask import request, jsonify
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from models import db, User, Contact, TokenBlocklist, Conv, ConvMember, Message
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, get_jwt
+from models import db, User, Contact, TokenBlocklist, Message, Conv, ConvMember
 from Crypto.Hash import SHA256
 import os
-from sqlalchemy import or_, and_
+from flask_mail import Message
+from pymysql import DBAPISet
 import base64
 
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -12,10 +13,9 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-from flask_mail import Message
-
 def init_routes(app, mail):
-    @app.route('/login', methods=['POST'])
+        
+    @app.route('/login', methods=['POST']) # TODO CHANGER LA RECUPERATION DU SEL DANS LA BDD PAR LA RECUPERATION DU SEL DEPUIS LE FRONT
     def login():
         # Récupère les données JSON envoyées dans le corps de la requête POST
         req_data = request.get_json()
@@ -24,8 +24,8 @@ def init_routes(app, mail):
         # Extrait le mot de passe du JSON reçu
         password = req_data['password']
         
-        # Recherche dans la base de données un utilisateur ayant le nom d'utilisateur et le mot de passe fournis
-       user = User.query.filter_by(username=username).first()
+        # Recherche dans la base de données un utilisateur ayant le nom d'utilisateur et le mot de passe fournis #TODO REGROUPER LA COMPARAISON DE L'USERNAME ET DU MDP 
+        user = User.query.filter_by(username=username).first()
         if user:
             if user.is_validate==True:
                 stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
@@ -34,15 +34,51 @@ def init_routes(app, mail):
                 #on compare le hash du mdp rentré et le mdp hashé dans la bdd
                 hashed_password=hashPassword(password,stored_salt)
                 if(stored_password_hash==hashed_password):
-                    
+
                     private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
                     # Si l'utilisateur est authentifié, créer un token JWT
                     access_token = create_access_token(identity=user.idUser,additional_claims={"private_key" : private_key})
-                
+
                     return jsonify({'access_token': access_token}), 200
-            
+
         return jsonify({'message': 'Invalid credentials'}), 401
+
+    @app.route('/displayUserByName', methods=['POST'])
+    @jwt_required()
+    def displayUserByName():
+        req_data = request.get_json()
+        username = req_data['username']
+        id_user = get_jwt_identity()
+        
+        users = User.query.filter(
+        (
+            ~User.idUser.in_(db.session.query(Contact.id_contact).filter_by(id_user=id_user)),
+            User.username.like(f'%{username}%'),
+            User.idUser != id_user
+        )).limit(100)
+        
+        user_data = [{'id': user.idUser, 'username': user.username} for user in users]
+        return jsonify({'users': user_data}), 200
+
     
+    @app.route('/addFriend', methods=['POST'])
+    @jwt_required()
+    def addFriend():
+        req_data = request.get_json()
+        username = req_data['username']
+        id_contact= req_data['id_contact']
+        id_user = get_jwt_identity()
+        
+        new_contact = Contact(id_user=id_user, id_contact=id_contact)
+        db.session.add(new_contact)
+        db.session.commit()
+        
+        if new_contact:
+            access_token = create_access_token(identity=id_user)
+            return jsonify({'message': 'Contact added successfully', 'access_token': access_token}), 200
+        else:
+            return jsonify({'message': 'Error adding contact'}), 500
+
     @app.route('/signUp', methods=['POST'])
     def signUp():
         req_data = request.get_json()
@@ -60,34 +96,14 @@ def init_routes(app, mail):
         private_key_base64 = base64.b64encode(private_key_secure).decode('utf-8')
         
         new_user = User(username=username, email=email, password_hash=hashed_password, salt=salt.hex(), public_key=public_key, private_key=private_key_base64)
+        
         db.session.add(new_user)
         db.session.commit()
         user_id = new_user.idUser
-        send_email(email,user_id) #Envoie du mail de confirmation
-        
         if new_user:
-            return jsonify({'message':"Your account is awaiting validation, you have just received an email" }), 200
+            access_token = create_access_token(identity=user_id,additional_claims={"private_key" : private_key})
+            return jsonify({'access_token': access_token}), 200
         return jsonify({'message': 'Invalid credentials'}), 401
-    
-    @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
-    def send_email(email_user, id_user):
-        msg = Message("Confirmation of your account",
-                    sender="whisper.confirm@gmail.com",
-                    recipients=[email_user])
-        msg.body = "Hello!\n\nHere is an email to confirm your Whisper's account, please click on this link: http://localhost:8000/emailConfirm?idUser=" + str(id_user)
-        
-        mail.send(msg)
-        return "Email sent successfully!"
-
-    
-    @app.route('/emailConfirm', methods=['GET'])      
-    def emailConfirm():
-        idUser = request.args.get('idUser')
-        user=db.session.query(User).filter(User.idUser == idUser).first()
-        if user:
-            user.is_validate=True
-            db.session.commit()
-            return jsonify({'message': 'Account validated'}), 200
 
     def generate_keys():
         # Générer une paire de clés RSA
@@ -121,7 +137,7 @@ def init_routes(app, mail):
             backend=default_backend()
         )
         return kdf.derive(password.encode())
-
+    
     def encrypt_private_key(private_key, password,salt):
         key = derive_key(password, salt)
         iv = os.urandom(16)
@@ -144,7 +160,7 @@ def init_routes(app, mail):
         decrypted_private_key = decryptor.update(encrypted_private_key) + decryptor.finalize()
         # Retourner la clé privée déchiffrée
         return decrypted_private_key
-
+    
     def hashPassword(password, salt):
         # Ajouter le sel au mot de passe
         salted_password = password.encode() + salt
@@ -153,44 +169,7 @@ def init_routes(app, mail):
         hash_object = SHA256.new(data=salted_password)
         hashed_password = hash_object.hexdigest()
         return hashed_password
-
-  
-    @app.route('/displayUserByName', methods=['POST'])
-    @jwt_required()
-    def displayUserByName():
-        req_data = request.get_json()
-        username = req_data['username']
-        id_user = get_jwt_identity()
-        
-        users = User.query.filter(
-        and_(
-            ~User.idUser.in_(db.session.query(Contact.id_contact).filter_by(id_user=id_user)),
-            User.username.like(f'%{username}%'),
-            User.idUser != id_user
-        )).limit(100)
-        
-        user_data = [{'id': user.idUser, 'username': user.username} for user in users]
-        return jsonify({'users': user_data}), 200
-
     
-    @app.route('/addFriend', methods=['POST'])
-    @jwt_required()
-    def addFriend():
-        req_data = request.get_json()
-        username = req_data['username']
-        id_contact= req_data['id_contact']
-        id_user = get_jwt_identity()
-        
-        new_contact = Contact(id_user=id_user, id_contact=id_contact)
-        db.session.add(new_contact)
-        db.session.commit()
-        
-        if new_contact:
-            access_token = create_access_token(identity=id_user)
-            return jsonify({'message': 'Contact added successfully', 'access_token': access_token}), 200
-        else:
-            return jsonify({'message': 'Error adding contact'}), 500
-
     # Route protégée nécessitant un token JWT valide
     @app.route('/protected', methods=['GET'])
     @jwt_required()
@@ -201,6 +180,7 @@ def init_routes(app, mail):
     @app.route('/contacts', methods=['GET'])
     @jwt_required()
     def get_contacts():
+        print("Trying to get contacts..")
         id_user = get_jwt_identity()
         user_contacts = (
             db.session.query(User.idUser, User.username)
@@ -209,6 +189,7 @@ def init_routes(app, mail):
             .all()
         )
         contacts_list = [{'id': contact[0], 'username': contact[1]} for contact in user_contacts]
+        print("Contacts sent")
         return jsonify({'contacts': contacts_list}), 200
 
     # Endpoint pour révoquer le token JWT actuel
@@ -220,7 +201,7 @@ def init_routes(app, mail):
         DBAPISet.session.add(token)
         db.session.commit()
         return jsonify(message="Token revoked"), 200
-
+    
     @app.route("/recent_messages", methods=["GET"])
     @jwt_required()
     def recent_messages():
@@ -256,43 +237,6 @@ def init_routes(app, mail):
         print(results)
 
         return jsonify({'recent_messages': results}), 200
-        
-    @app.route("/messages", methods=["POST"])
-    @jwt_required()
-    def messages():
-        print("TEST TEST TEST")
-        id_user = get_jwt_identity()
-        req_data = request.get_json()
-        id_conv = req_data['id_conv']
-        print(id_conv)
-
-        if not id_conv:
-            return jsonify({"error : Conversation ID is required"}), 400
-        
-        messages = db.session.query(Message.idMessage, Message.content, Message.date, Message.id_sender, User.username, User.email, Conv.idConv, Conv.name, Conv.type)\
-            .join(User, Message.id_sender == User.idUser)\
-            .join(Conv, Message.id_conv == Conv.idConv)\
-            .filter(Message.id_conv == id_conv)\
-            .order_by(Message.date.asc())\
-            .all()
-
-        # Format the messages for JSON response
-        messages_list = [{
-            'idMessage': message.idMessage,
-            'content': message.content,
-            'date': message.date.isoformat(),
-            'id_sender': message.id_sender,
-            'username': message.username,
-            'email': message.email,
-            'idConv': message.idConv,
-            'convName': message.name,
-            'convType': message.type,
-            'current_user': True if message.id_sender == id_user else False,  
-        } for message in messages]
-
-        print(messages_list)
-
-        return jsonify({"messages" : messages_list}), 200
     
     @app.route("/get_profile", methods=["GET"])
     @jwt_required()
@@ -308,9 +252,7 @@ def init_routes(app, mail):
             return jsonify({"user_data": user_data}), 200
 
         return jsonify({"message": "User not found"}), 404
-
-
-
+    
     @app.route("/edit_profile", methods=["POST"])
     @jwt_required()
     def edit_profile():
@@ -343,34 +285,140 @@ def init_routes(app, mail):
 
         return jsonify({"message": "User not found"}), 404
 
+    @app.route('/private_message', methods=['POST'])
+    def send_message():
+        print("Trying to send message in database..")
+        # Récupérer les données JSON envoyées dans le corps de la requête POST
+        message_data = request.get_json()
 
+        # Extraire les données du message
+        id_conv = message_data.get('id_conv')
+        id_sender = message_data.get('id_sender')
+        content = message_data.get('content')
+        date = message_data.get('date')
+        is_read = message_data.get('is_read')
 
-# Callback pour vérifier si le token est révoqué
-"""
-@jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header, jwt_payload):
-    jti = jwt_payload["jti"]
-    token = TokenBlocklist.query.filter_by(jti=jti).first()
-    return token is not None
+        # Vérifier si toutes les données nécessaires sont présentes
+        if id_conv is None or id_sender is None or content is None or date is None or is_read is None:
+            return jsonify({'error': 'Missing data'}), 400
 
-@app.route('/messages', methods=['GET'])
-def get_messages():
-    if 'username' in session:
-        username = session['username']
-        user_messages = [msg for msg in messages if msg['Sender'] == username or msg['Receiver'] == username]
-        return jsonify({'messages': user_messages}), 200
-    else:
-        return jsonify({'message': 'Unauthorized access'}), 401
+        # Créer un nouvel objet Message
+        new_message = Message(id_conv=id_conv, id_sender=id_sender, content=content, date=date, is_read=is_read)
 
-@app.route('/send_message', methods=['POST'])
-def send_message():
-    if 'username' in session:
-        req_data = request.get_json()
-        sender = session['username']
-        receiver = req_data['receiver']
-        content = req_data['content']
-        messages.append({'Sender': sender, 'Receiver': receiver, 'Content': content})
+        # Ajouter le message à la base de données
+        db.session.add(new_message)
+        db.session.commit()
+        
+        print("Message sent successfully in database")
+
+        # Renvoyer une réponse JSON indiquant que le message a été envoyé avec succès
         return jsonify({'message': 'Message sent successfully'}), 200
-    else:
-        return jsonify({'message': 'Unauthorized access'}), 401
-"""
+    
+    @app.route('/conversation_id', methods=['POST'])
+    def get_conversation_id():
+        print("Trying to get conversation id..")
+        req_data = request.get_json()
+        user1 = req_data['user1']
+        user2 = req_data['user2']
+        print("Users: {} and {}".format(user1, user2))
+
+        try:
+            # Concaténer et trier les noms d'utilisateurs pour obtenir le nom de la conversation
+            conversation_name = '_'.join(sorted([user1, user2]))
+            print("Conversation name: "+conversation_name)
+
+            # Rechercher la conversation dans la base de données en fonction de son nom
+            conversation = Conv.query.filter_by(name=conversation_name).first()
+            if conversation:
+                # Si la conversation est trouvée, renvoyer son ID
+                print("Conversation found: "+str(conversation.idConv))
+                return jsonify({'conversationId': conversation.idConv}), 200
+            else:
+                # Si la conversation n'est pas trouvée, renvoyer une erreur 404 (non trouvé)
+                print("Conversation not found for: "+str(conversation_name))
+                return jsonify({'message': 'Conversation not found'}), 404
+        except Exception as e:
+            # En cas d'erreur, renvoyer une erreur 500 (erreur interne du serveur) avec le message d'erreur
+            print("Error: "+str(e))
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/getmessages', methods=['GET'])
+    def get_conversation_messages():
+        print("/getmessages - Trying to get conversation messages..")
+        try:
+            conversation_id = request.args.get('conversationId')
+            print("Conversation ID:", conversation_id)
+
+            # Recherche des messages de la conversation dans la base de données
+            conversation_messages = Message.query.filter_by(id_conv=conversation_id).all()
+            
+            if conversation_messages:
+                print("Messages found for conversation ID:", conversation_id)
+                # Préparation des données de réponse au format JSON
+                response_data = [{'id_conv': message.id_conv,
+                                'id_sender': message.id_sender,
+                                'content': message.content,
+                                'date': message.date.isoformat(),
+                                'is_read': message.is_read} for message in conversation_messages]
+                return jsonify(response_data), 200
+            else:
+                print("No messages found for conversation ID:", conversation_id)
+                return jsonify({'message': 'No messages found for conversation ID'}), 404
+        except Exception as e:
+            print("Error:", e)
+            return jsonify({'error': str(e)}), 500
+
+    @app.route("/conversation_users", methods=["GET"])
+    @jwt_required()
+    def get_conversation_users():
+        conv_id = request.args.get('convId')
+
+        # Requête pour récupérer les utilisateurs présents dans la conversation avec l'identifiant conv_id
+        users_query = (db.session.query(User)
+            .join(ConvMember, ConvMember.idUser == User.idUser)
+            .filter(ConvMember.idConv == conv_id)
+            .all())
+        # Sérialisation des utilisateurs en format JSON
+        users_json = [user.serialize() for user in users_query]
+        return jsonify(users_json), 200
+    
+    @app.route('/fetchuser/<string:user_id>', methods=['GET'])
+    @jwt_required()
+    def fetch_user(user_id):
+        try:
+            print("Fetching user with ID:", user_id)
+            # Recherche de l'utilisateur dans la base de données en fonction de son identifiant
+            user = User.query.filter_by(idUser=user_id).first()
+            if user:
+                # Si l'utilisateur est trouvé, retournez ses informations au format JSON
+                user_data = {
+                    "idUser": user.idUser,
+                    "username": user.username,
+                }
+                return jsonify(user_data), 200
+            else:
+                # Si l'utilisateur n'est pas trouvé, renvoyez une erreur 404 (non trouvé)
+                return jsonify({"message": "User not found"}), 404
+        except Exception as e:
+            # En cas d'erreur, renvoyer une erreur 500 (erreur interne du serveur) avec le message d'erreur
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
+    def send_email(email_user, id_user):
+        msg = Message("Confirmation of your account",
+                    sender="whisper.confirm@gmail.com",
+                    recipients=[email_user])
+        msg.body = "Hello!\n\nHere is an email to confirm your Whisper's account, please click on this link: http://localhost:8000/emailConfirm?idUser=" + str(id_user)
+
+        mail.send(msg)
+        return "Email sent successfully!"
+
+
+    @app.route('/emailConfirm', methods=['GET'])      
+    def emailConfirm():
+        idUser = request.args.get('idUser')
+        user=db.session.query(User).filter(User.idUser == idUser).first()
+        if user:
+            user.is_validate=True
+            db.session.commit()
+            return jsonify({'message': 'Account validated'}), 200
