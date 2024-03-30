@@ -6,7 +6,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import "profilpage.dart";
 
-const String url = 'http://localhost:8000';
+import '../../models/url.dart';
 
 
 class EditProfilePage extends StatefulWidget {
