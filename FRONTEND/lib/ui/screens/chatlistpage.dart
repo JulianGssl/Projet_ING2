@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'addfriendpage.dart';
 
+// Assurez-vous d'importer vos pages ici
+import 'profilpage.dart'; // Assurez-vous que cette page existe dans votre projet
+import 'contactpage.dart'; // Assurez-vous que cette page existe dans votre projet
+import 'addfriendpage.dart'; // Assurez-vous que cette page existe dans votre projet
 import 'chatpage.dart';
 import '../../models/user.dart';
 import '../../models/url.dart';
@@ -11,24 +14,26 @@ class ChatListPage extends StatefulWidget {
   final String sessionToken;
   final User currentUser;
 
-  const ChatListPage(
-      {super.key,
-      required this.sessionToken,
-      required this.currentUser});
+  const ChatListPage({
+    super.key,
+    required this.sessionToken,
+    required this.currentUser,
+  });
 
   @override
   _ChatListPageState createState() => _ChatListPageState();
 }
 
 class _ChatListPageState extends State<ChatListPage> {
-  List<dynamic> recentMessages = []; // Variable pour stocker les messages récents
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  List<dynamic> recentMessages = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchConversation(); // Appel à la méthode pour récupérer les conversations
+    _fetchConversation();
   }
-  
+
   void _fetchConversation() async {
     final response = await http.get(
       Uri.parse('$url/recent_messages'),
@@ -50,9 +55,7 @@ class _ChatListPageState extends State<ChatListPage> {
     }
   }
 
-  // Fonction pour récupérer les informations sur l'interlocuteur à partir de la base de données
   Future<User> fetchOtherUser(String otherUserId) async {
-    print("Fetching Otheruser...");
     final response = await http.get(
       Uri.parse('$url/fetchuser/$otherUserId'),
       headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
@@ -68,32 +71,66 @@ class _ChatListPageState extends State<ChatListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text('Messages'),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.menu, color: Colors.grey),
-          onPressed: () {
-            // Handle your action
-          },
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.add, color: Colors.blue),
+            icon: Icon(Icons.account_circle, color: Colors.grey),
             onPressed: () {
-              // Handle your action
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ProfilePage(sessionToken: widget.sessionToken)),
+              );
             },
           ),
         ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              child: Text('Menu'),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+            ),
+            ListTile(
+              title: Text('Profile'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage(sessionToken: widget.sessionToken)));
+              },
+            ),
+            ListTile(
+              title: Text('Contacts'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(context, MaterialPageRoute(builder: (context) => ContactPage(sessionToken: widget.sessionToken)));
+              },
+            ),
+            ListTile(
+              title: Text('Add Friend'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AddFriendPage(sessionToken: widget.sessionToken)));
+              },
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    AddFriendPage(sessionToken: widget.sessionToken)),
+            MaterialPageRoute(builder: (context) => AddFriendPage(sessionToken: widget.sessionToken)),
           );
         },
         child: const Icon(Icons.add),
