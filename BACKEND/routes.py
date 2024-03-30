@@ -6,6 +6,8 @@ import os
 from flask_mail import Message
 from pymysql import DBAPISet
 import base64
+from sqlalchemy.orm import aliased  
+
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
