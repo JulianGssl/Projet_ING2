@@ -103,6 +103,6 @@ if __name__ == '__main__':
     cert_path = 'cert_path/server.pem'
     key_path = 'key_path/server.pem'
     # Créer un serveur SSL avec wrap_ssl()  
-    ssl_sock = wrap_ssl(eventlet.listen(('0.0.0.0', 8000)), certfile=cert_path, keyfile=key_path, server_side=True) # remplacez 0.0.0.0 par 192.168.1.28 (l'adresse IP de votre de l'ordi) pour host le serveur en local
+    ssl_sock = wrap_ssl(eventlet.listen(('localhost', 8000)), certfile=cert_path, keyfile=key_path, server_side=True) # remplacez localhost par 192.168.1.28 (l'adresse IP de votre de l'ordi) pour host le serveur en local
     # Exécuter l'application Flask avec le serveur SSL
     wsgi.server(ssl_sock, app)
