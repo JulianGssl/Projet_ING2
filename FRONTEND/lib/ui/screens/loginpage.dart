@@ -3,12 +3,10 @@ import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../../models/user.dart';
+import 'package:jwt_decode/jwt_decode.dart';
 
 import 'chatlistpage.dart';
-
-void main() {
-  runApp(MyApp());
-}
 
 class MyApp extends StatelessWidget {
   @override
@@ -247,7 +245,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
         // Navigation vers la page ChatListPage
         var responseData = json.decode(response.body);
         String sessionToken = responseData['access_token'];
-        int userId = responseData['idUser']; // Récupération de l'ID de l'utilisateur
+        Map<String, dynamic> decodedToken = Jwt.parseJwt(sessionToken);
+        int userId = decodedToken['idUser'];
         String username = '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
         // Création de l'objet User de l'utilisateur connecté
         User loggedUser = User(id: userId, username: username);
