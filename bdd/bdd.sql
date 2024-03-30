@@ -32,7 +32,6 @@ CREATE TABLE IF NOT EXISTS `app_db`.`user` (
   PRIMARY KEY (`idUser`),
   UNIQUE (`email`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 15
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -54,7 +53,6 @@ CREATE TABLE IF NOT EXISTS `app_db`.`contact` (
     FOREIGN KEY (`id_user`)
     REFERENCES `app_db`.`user` (`idUser`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 15
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -69,7 +67,6 @@ CREATE TABLE IF NOT EXISTS `app_db`.`conv` (
   `creation_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idConv`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 6
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -92,7 +89,6 @@ CREATE TABLE IF NOT EXISTS `app_db`.`convmember` (
     FOREIGN KEY (`idUser`)
     REFERENCES `app_db`.`user` (`idUser`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 11
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -117,7 +113,6 @@ CREATE TABLE IF NOT EXISTS `app_db`.`message` (
     FOREIGN KEY (`id_sender`)
     REFERENCES `app_db`.`user` (`idUser`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 3
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
