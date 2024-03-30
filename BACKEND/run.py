@@ -22,11 +22,13 @@ Session(app)
 CORS(app)
 
 socketio = SocketIO(app, cors_allowed_origins="*")
-# ----------------- SocketIO Routes -----------------
+# ----------------- SocketIO Routes -----------------  
 @socketio.on('connect')
 def handle_connect():
-    print('Client connected, emitting response')
-    emit('connectResponse', 'Serverside OK')
+    print("--SOCKETIO ROUTE: handle_connect")
+    print("     Calling 'connect' event handler")
+    print('     Client connected, response emitted')
+    emit('connectResponse', 'SERVERSIDE OK')
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -39,16 +41,20 @@ def handle_message(msg):
 
 @socketio.on('private_message')
 def handle_private_message(data):
-    print("Received private message: ", data)
-    sender = data['sender']
+    sender_name = data['sender_name']
+    sender_id = data['id_sender']
     recipient = data['recipient']
-    message = data['message']
-    # Création du nom de la room avec les noms des utilisateurs triés en ordre alphabétique
-    users = sorted([sender, recipient])    
-    room_name = '_'.join(users)        
-    #emit('message_ack', {'success': True})
-    print("Emitting new_message event with sender: "+sender+" and message: "+message+" to room: "+room_name)
-    emit('new_message', {'sender': sender, 'message': message}, room=room_name)
+    content = data['content']
+    id_conv = data['id_conv']
+    date = datetime.now().isoformat()
+    is_read = data['is_read'] == 1
+    emit('new_message', { # ! PROBLEME D'ENVOIE DE L'EVENEMENT 'new_message' AU CLIENT
+        'id_conv': id_conv,
+        'id_sender': sender_id,
+        'content': content,
+        'date': date,
+        'is_read': is_read
+    }, room=recipient) #? PROBLEME RESOLU : ATTENTION A LA ROOM DANS LAQUELLE ON ENVOIE LE MESSAGE SINON IL NE S'ENVOIE PAS
     
 @socketio.on('join')
 def on_join(data):
@@ -65,17 +71,12 @@ def on_leave(data):
     room = data['room']
     leave_room(room)
     emit('message', f'{username} has left the room.', to=room)
-    
+        
 @socketio.on('start_chat')
 def start_chat(data):
-    print("Création d'un canal de communication entre "+data['user1']+" et "+data['user2'])
-    user1 = data['user1']
-    user2 = data['user2']    
-    # Trier les noms d'utilisateur en ordre alphabétique
-    users = sorted([user1, user2])    
-    # Concaténer les noms d'utilisateur pour former le nom de la salle de discussion
-    room_name = '_'.join(users)    
-    # Rejoindre la salle de discussion
+    print(" --SOCKETIO ROUTE: start_chatUPDATED")
+    print("Création d'un canal de communication pour le groupe " + data['groupName'])
+    room_name = data['groupName']  
     join_room(room_name)    
     # Émettre l'événement pour indiquer que la conversation a commencé avec le nom de la salle de discussion
     print("Emitting chatStarted event with room name: "+room_name)
@@ -87,14 +88,17 @@ def start_chat(data):
 # Initialiser les routes
 init_routes(app,mail)
 
-init_socket_route(app)
-
 
 if __name__ == '__main__':
-    socketio.run(app, port=8000)
-    #app.run(host='0.0.0.0', port=8000)
+    # Ancienne façon de lancer le backend avec les routes (à garder pour l'instant)
+    #socketio.run(app, port=8000)
+    #app.run(host='0.0.0.0', port=8000, ssl_context="adhoc")
 
-# For production server    
-#if __name__ == "__main__":
-#    from waitress import serve
-#    serve(app, host="0.0.0.0", port=8000)
+    ########################################################################
+    # Nouvelle façon de lancer le backend avec https
+    cert_path = 'cert_path/server.pem'
+    key_path = 'key_path/server.pem'
+    # Créer un serveur SSL avec wrap_ssl()  
+    ssl_sock = wrap_ssl(eventlet.listen(('0.0.0.0', 8000)), certfile=cert_path, keyfile=key_path, server_side=True) # remplacez 0.0.0.0 par 192.168.1.28 (l'adresse IP de votre de l'ordi) pour host le serveur en local
+    # Exécuter l'application Flask avec le serveur SSL
+    wsgi.server(ssl_sock, app)
