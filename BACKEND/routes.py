@@ -201,7 +201,7 @@ def init_routes(app, mail):
         ).join(
             Conv, cm1_alias.idConv == Conv.idConv
         ).filter(
-            Conv.type == 'prive'
+            Conv.type == 'private'
         ).join(
             user_alias, cm2_alias.idUser == user_alias.idUser
         ).filter(
@@ -287,7 +287,9 @@ def init_routes(app, mail):
         username = req_data['username']
         email = req_data['email']
         password = req_data['password']
-        current_password = req_data['currentPassword']
+        current_password = req_data['currentPassword']                
+        password = req_data['password'] if req_data['password'] != '' else current_password
+
 
         user = User.query.filter_by(idUser=id_user).first()
 
