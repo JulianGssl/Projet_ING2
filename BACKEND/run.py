@@ -8,7 +8,6 @@ from models import db
 from routes import init_routes
 from config import Config
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from socketioRoutes import init_socket_route
 from flask_mail import Mail
 
 import eventlet
