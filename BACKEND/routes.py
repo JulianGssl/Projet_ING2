@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required    
 from models import db, User, Contact, TokenBlocklist, Message, Conv, ConvMember
 
 def init_routes(app):
@@ -28,14 +28,38 @@ def init_routes(app):
     @jwt_required()
     def get_contacts():
         id_user = get_jwt_identity()
-        user_contacts = (
-            db.session.query(User.username)
-            .join(Contact, User.idUser == Contact.id_contact)
-            .filter(Contact.id_user == id_user)
-            .all()
-        )
-        contacts_list = [contact[0] for contact in user_contacts]
-        return jsonify({'contacts': contacts_list}), 200
+        
+
+        # Alias for convmember and user tables
+        cm1_alias = aliased(ConvMember)
+        cm2_alias = aliased(ConvMember)
+        user_alias = aliased(User)
+
+        contacts_query = db.session.query(
+            cm1_alias.idConv,
+            cm2_alias.idUser.label('other_user_id'),
+            user_alias.username.label('other_user_name')
+        ).join(
+            cm2_alias, cm1_alias.idConv == cm2_alias.idConv
+        ).filter(
+            cm1_alias.idUser != cm2_alias.idUser
+        ).join(
+            Conv, cm1_alias.idConv == Conv.idConv
+        ).filter(
+            Conv.type == 'prive'
+        ).join(
+            user_alias, cm2_alias.idUser == user_alias.idUser
+        ).filter(
+            cm1_alias.idUser == id_user
+        ).distinct()
+
+        contacts = contacts_query.all()
+        result = [
+            {'conversation_id': contact.idConv, 'other_user_id': contact.other_user_id, 'other_user_name': contact.other_user_name}
+            for contact in contacts
+        ]
+
+        return jsonify({"contacts": result}), 200
 
     # Endpoint pour révoquer le token JWT actuel
     @app.route("/logout", methods=["POST"])
