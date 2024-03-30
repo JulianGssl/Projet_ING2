@@ -18,3 +18,5 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USERNAME = 'whisper.confirm@gmail.com'
     MAIL_PASSWORD = 'iuho gdls inkg omeg'
+
+    SESSION_TYPE = 'filesystem' # Vérifier l'utilité / jsp pourquoi j'en avais besoin  (ㆆ _ ㆆ)
