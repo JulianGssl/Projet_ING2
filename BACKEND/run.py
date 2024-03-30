@@ -9,6 +9,7 @@ from routes import init_routes
 from config import Config
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from socketioRoutes import init_socket_route
+from flask_mail import Mail
 
 app = Flask(__name__)
 app.config.from_object(Config) 
@@ -16,6 +17,7 @@ app.config.from_object(Config)
 # Initialiser les extensions    
 db.init_app(app)
 jwt = JWTManager(app)
+mail = Mail(app)
 Session(app)
 CORS(app)
 
@@ -83,7 +85,7 @@ def start_chat(data):
 # ----------------- SocketIO Routes -----------------
         
 # Initialiser les routes
-init_routes(app)
+init_routes(app,mail)
 
 init_socket_route(app)
 
