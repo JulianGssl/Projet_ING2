@@ -11,6 +11,11 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from socketioRoutes import init_socket_route
 from flask_mail import Mail
 
+import eventlet
+import eventlet.wsgi
+from eventlet import wsgi
+from eventlet import wrap_ssl
+
 app = Flask(__name__)
 app.config.from_object(Config) 
 
