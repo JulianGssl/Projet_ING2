@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-const String url = 'http://localhost:8000';
+import '../../models/url.dart';
 
 class AddFriendPage extends StatefulWidget {
   final String sessionToken;
