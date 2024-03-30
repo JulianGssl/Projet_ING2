@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from models import db, User, Contact, TokenBlocklist, Message, Conv, ConvMember
 from Crypto.Hash import SHA256
 import os
-from flask_mail import Message
+import flask_mail
 from pymysql import DBAPISet
 import base64
 from sqlalchemy.orm import aliased  
@@ -429,7 +429,7 @@ def init_routes(app, mail):
 
     @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
     def send_email(email_user, id_user):
-        msg = Message("Confirmation of your account",
+        msg = flask_mail.Message("Confirmation of your account",
                     sender="whisper.confirm@gmail.com",
                     recipients=[email_user])
         msg.body = "Hello!\n\nHere is an email to confirm your Whisper's account, please click on this link: http://localhost:8000/emailConfirm?idUser=" + str(id_user)
