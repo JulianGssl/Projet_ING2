@@ -8,6 +8,8 @@ import '../../models/message.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+import 'chatlistpage.dart';
+
 class ChatPage extends StatefulWidget {
   final int convId;
   final String convName;
@@ -178,7 +180,12 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ChatListPage(sessionToken: widget.sessionToken, currentUser: widget.currentUser)),
+            );
+          },
         ),
         backgroundColor: Colors.white,
         title: Row(
