@@ -98,7 +98,7 @@ def init_routes(app, mail):
         else:
             return jsonify({'message': 'Error adding contact'}), 500
 
-    @app.route('/realsignUp', methods=['POST'])
+    @app.route('/realSignUp', methods=['POST'])
     def signUp():
         req_data = request.get_json()
         username = req_data['username']
