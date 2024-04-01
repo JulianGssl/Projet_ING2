@@ -12,6 +12,7 @@ import 'editprofilpage.dart';
 
 class ProfilePage extends StatefulWidget {
   final String sessionToken;
+  
 
   const ProfilePage({super.key, required this.sessionToken});
 
