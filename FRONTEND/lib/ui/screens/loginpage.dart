@@ -309,7 +309,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   void _handleSignUpButtonPressed() async {
     if (verifPassword(_passwordControllerSignUp.text)) {
       var response = await http.post(
-        Uri.parse('$url/signUp'),
+        Uri.parse('$url/realSignUp'),
         body: jsonEncode({
           'username': _nameController.text,
           'email': _emailController.text,
