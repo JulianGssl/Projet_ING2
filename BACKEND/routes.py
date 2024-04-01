@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, get_jwt
 from models import db, User, Contact, TokenBlocklist, Message, Conv, ConvMember
@@ -15,9 +16,28 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-def init_routes(app, mail):
+import logging
+from logging.handlers import RotatingFileHandler
+# from flask_wtf.csrf import CSRFProtect
+import itsdangerous
+
+def init_routes(app, mail,csrf,limiter):
+
+    ## Configuration de la journalisation
+    app.logger.setLevel(logging.DEBUG)
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    log_file_path = os.path.join(current_directory, 'app.log')
+
+    handler = RotatingFileHandler(log_file_path, maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
+    
+
+
         
     @app.route('/login', methods=['POST']) # TODO CHANGER LA RECUPERATION DU SEL DANS LA BDD PAR LA RECUPERATION DU SEL DEPUIS LE FRONT
+    @csrf.exempt
+    @limiter.limit("3/minute")
     def login():
         # Récupère les données JSON envoyées dans le corps de la requête POST
         req_data = request.get_json()
@@ -25,6 +45,11 @@ def init_routes(app, mail):
         username = req_data['username']
         # Extrait le mot de passe du JSON reçu
         password = req_data['password']
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         
         # Recherche dans la base de données un utilisateur ayant le nom d'utilisateur et le mot de passe fournis #TODO REGROUPER LA COMPARAISON DE L'USERNAME ET DU MDP 
         user = User.query.filter_by(username=username).first()
@@ -40,13 +65,16 @@ def init_routes(app, mail):
                     private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
                     # Si l'utilisateur est authentifié, créer un token JWT
                     access_token = create_access_token(identity=user.idUser,additional_claims={"idUser" : user.idUser, "private_key" : private_key})
+                    app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
 
                     return jsonify({'access_token': access_token}), 200
 
+        app.logger.warning(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
 
     @app.route('/displayUserByName', methods=['POST'])
     @jwt_required()
+    @csrf.exempt
     def displayUserByName():
         req_data = request.get_json()
         username = req_data['username']
@@ -66,8 +94,9 @@ def init_routes(app, mail):
     
     @app.route('/addFriend', methods=['POST'])
     @jwt_required()
+    @csrf.exempt
     def addFriend():
-       req_data = request.get_json()
+        req_data = request.get_json()
         contact_username = req_data['username']
         id_contact= req_data['id_contact']
         
@@ -210,12 +239,14 @@ def init_routes(app, mail):
     
     # Route protégée nécessitant un token JWT valide
     @app.route('/protected', methods=['GET'])
+    @csrf.exempt
     @jwt_required()
     def protected_route():
         current_user = get_jwt_identity()
         return jsonify({'message': 'Login successful', 'user': current_user}), 200
 
     @app.route('/contacts', methods=['GET'])
+    @csrf.exempt
     @jwt_required()
     def get_contacts():
         id_user = get_jwt_identity()
@@ -254,6 +285,7 @@ def init_routes(app, mail):
 
     # Endpoint pour révoquer le token JWT actuel
     @app.route("/logout", methods=["POST"])
+    @csrf.exempt
     @jwt_required()
     def logout():
         jti = get_jwt()["jti"]
@@ -263,6 +295,7 @@ def init_routes(app, mail):
         return jsonify(message="Token revoked"), 200
     
     @app.route("/recent_messages", methods=["GET"])
+    @csrf.exempt
     @jwt_required()
     def recent_messages():
         id_user = get_jwt_identity()
@@ -299,6 +332,7 @@ def init_routes(app, mail):
         return jsonify({'recent_messages': results}), 200
     
     @app.route("/get_profile", methods=["GET"])
+    @csrf.exempt
     @jwt_required()
     def get_profile():
         id_user = get_jwt_identity()
@@ -314,10 +348,17 @@ def init_routes(app, mail):
         return jsonify({"message": "User not found"}), 404
     
     @app.route("/edit_profile", methods=["POST"])
+    @csrf.exempt
     @jwt_required()
     def edit_profile():
-        id_user = jwt_required()
+        ##id_user = jwt_required()
+
+        # Vérifiez le jeton CSRF inclus dans la demande
+        if 'X-CSRF-TOKEN' not in request.headers or not is_valid_csrf_token(request.headers['X-CSRF-TOKEN']):
+            return jsonify({'error': 'Invalid CSRF token'}), 403
+        
         id_user = get_jwt_identity()
+        print(id_user)
         req_data = request.get_json()
         print(req_data)
         username = req_data['username']
@@ -348,6 +389,7 @@ def init_routes(app, mail):
         return jsonify({"message": "User not found"}), 404
 
     @app.route('/private_message', methods=['POST'])
+    @csrf.exempt
     def send_message():
         print("Trying to send message in database..")
         # Récupérer les données JSON envoyées dans le corps de la requête POST
@@ -377,6 +419,7 @@ def init_routes(app, mail):
         return jsonify({'message': 'Message sent successfully'}), 200
     
     @app.route('/conversation_id', methods=['POST'])
+    @csrf.exempt
     def get_conversation_id():
         print("Trying to get conversation id..")
         req_data = request.get_json()
@@ -405,6 +448,7 @@ def init_routes(app, mail):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/getmessages', methods=['GET'])
+    @csrf.exempt
     def get_conversation_messages():
         print("/getmessages - Trying to get conversation messages..")
         try:
@@ -431,6 +475,7 @@ def init_routes(app, mail):
             return jsonify({'error': str(e)}), 500
 
     @app.route("/conversation_users", methods=["GET"])
+    @csrf.exempt
     @jwt_required()
     def get_conversation_users():
         conv_id = request.args.get('convId')
@@ -445,6 +490,7 @@ def init_routes(app, mail):
         return jsonify(users_json), 200
     
     @app.route('/fetchuser/<string:user_id>', methods=['GET'])
+    @csrf.exempt
     @jwt_required()
     def fetch_user(user_id):
         try:
@@ -466,6 +512,7 @@ def init_routes(app, mail):
             return jsonify({"error": str(e)}), 500
 
     @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
+    @csrf.exempt
     def send_email(email_user, id_user):
         msg = flask_mail.Message("Confirmation of your account",
                     sender="whisper.confirm@gmail.com",
@@ -476,7 +523,8 @@ def init_routes(app, mail):
         return "Email sent successfully!"
 
 
-    @app.route('/emailConfirm', methods=['GET'])      
+    @app.route('/emailConfirm', methods=['GET'])  
+    @csrf.exempt    
     def emailConfirm():
         idUser = request.args.get('idUser')
         user=db.session.query(User).filter(User.idUser == idUser).first()
@@ -484,3 +532,47 @@ def init_routes(app, mail):
             user.is_validate=True
             db.session.commit()
             return jsonify({'message': 'Account validated'}), 200
+        
+   
+    @app.route('/get_CSRF', methods=['GET'])
+    @csrf.exempt
+    @jwt_required()
+    def get_csrf_token():
+        # Générez et renvoyez le jeton CSRF ici
+        csrf_token = generate_csrf_token()  
+        print(f"Token Csrf obtenu : {csrf_token}")
+        return jsonify({'csrf_token': csrf_token}), 200
+        
+
+            
+######################################################################################################
+
+
+
+    ## Fonctions pour CSRF
+
+
+    # Créez un sérialiseur avec une clé secrète
+    csrf_serializer = itsdangerous.URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+    # Générer un jeton CSRF
+    def generate_csrf_token():
+        return csrf_serializer.dumps({'csrf': True})
+
+    # Vérifier le jeton CSRF
+    def is_valid_csrf_token(csrf_token):
+        try:
+            data = csrf_serializer.loads(csrf_token, max_age=600)  # Vérifiez si le jeton n'a pas expiré après 600 secondes (10 minutes)
+            return data.get('csrf') == True
+        except itsdangerous.BadData:
+            return False
+
+######################################################################################################
+
+        
+
+
+
+
+
+
