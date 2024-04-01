@@ -98,7 +98,7 @@ def init_routes(app, mail):
         else:
             return jsonify({'message': 'Error adding contact'}), 500
 
-    @app.route('/signUp', methods=['POST'])
+    @app.route('/realsignUp', methods=['POST'])
     def signUp():
         req_data = request.get_json()
         username = req_data['username']
@@ -123,6 +123,20 @@ def init_routes(app, mail):
             access_token = create_access_token(identity=user_id,additional_claims={"private_key" : private_key})
             return jsonify({'access_token': access_token}), 200
         return jsonify({'message': 'Invalid credentials'}), 401
+
+    @app.route('/signUp', methods=['POST'])
+    def signUp():
+        req_data = request.get_json()
+        username = req_data['username']
+        password = req_data['password']
+        email= req_data["email"]
+
+        new_user = FakeUser(username=username, password=password, email=email)
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({"message": "User created successfully"}), 201
 
     def generate_keys():
         # Générer une paire de clés RSA
