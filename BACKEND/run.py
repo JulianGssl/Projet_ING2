@@ -24,6 +24,7 @@ jwt = JWTManager(app)
 mail = Mail(app)
 Session(app)
 CORS(app)
+# csrf = CSRFProtect(app)
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 # ----------------- SocketIO Routes -----------------  
@@ -85,6 +86,19 @@ def start_chat(data):
     # Émettre l'événement pour indiquer que la conversation a commencé avec le nom de la salle de discussion
     print("Emitting chatStarted event with room name: "+room_name)
     socketio.emit('chatStarted', room_name)
+
+
+
+
+
+
+
+
+
+######################################################################################################
+
+
+
 
     
 # ----------------- SocketIO Routes -----------------
