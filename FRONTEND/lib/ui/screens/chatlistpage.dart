@@ -114,7 +114,12 @@ class _ChatListPageState extends State<ChatListPage> {
                title: Text('Contacts'),
                onTap: () {
                  Navigator.pop(context); // Close the drawer
-                 Navigator.push(context, MaterialPageRoute(builder: (context) => ContactPage(sessionToken: widget.sessionToken,currentUser: widget.currentUser));
+                 Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ContactPage(
+                            sessionToken: widget.sessionToken,
+                            currentUser: widget.currentUser)));
                },
              ),
             ListTile(
