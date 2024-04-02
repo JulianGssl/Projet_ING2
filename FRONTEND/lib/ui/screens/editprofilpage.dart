@@ -27,12 +27,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   bool _isLoading = true; // Ajout d'un indicateur de chargement
   String? _errorMessage; // Pour gérer les messages d'erreur
+  late String _csrfToken;
 
   Map<String, dynamic> _userData = {}; // Corrected type
 
   @override
   void initState() {
     super.initState();
+    _fetchCSRFToken();
     _fetchGetProfile();
   } 
 
@@ -44,6 +46,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _passwordController.dispose();
     super.dispose();
   }
+
+
+  Future<String> _fetchCSRFToken() async {
+  final response = await http.get(
+        Uri.parse('$url/get_CSRF'),
+        headers: {'Authorization': 'Bearer ${widget.sessionToken}', 'Content-Type': 'application/json'},
+      );
+  if (response.statusCode == 200) {
+    var responseData=json.decode(response.body);
+    String csrfToken = responseData['csrf_token'];
+    setState(() {
+        _csrfToken = csrfToken;
+      });
+    return response.body;
+  } else {
+    throw Exception('Failed to load CSRF token');
+  }
+}
 
 
   void _fetchGetProfile() async {
@@ -85,9 +105,11 @@ void _fetchEditProfile(String currentPassword) async {
         'currentPassword': currentPassword
       }),
       headers: {'Authorization': 'Bearer ${widget.sessionToken}',
+                'X-CSRF-TOKEN': _csrfToken,
                 'Content-Type': 'application/json',
               },
     );
+    print(_csrfToken);
     if (response.statusCode == 200) {
       // Redirection vers ChatListPage
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfilePage(sessionToken: widget.sessionToken)));

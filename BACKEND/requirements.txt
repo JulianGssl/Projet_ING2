@@ -11,3 +11,6 @@ flask_socketio
 flask_mail
 pymysql
 eventlet
+itsdangerous
+Flask-WTF
+Flask-Limiter

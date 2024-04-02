@@ -15,8 +15,31 @@ import eventlet.wsgi
 from eventlet import wsgi
 from eventlet import wrap_ssl
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import os
+from flask import Flask, jsonify, request
+from flask_wtf.csrf import CSRFProtect
+import itsdangerous
+import logging
+from logging.handlers import RotatingFileHandler
+
+
 app = Flask(__name__)
 app.config.from_object(Config) 
+
+
+## Configuration du limiteur de requête
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+# Limiter toutes les routes à 100 requêtes par minute pour chaque adresse IP
+limiter.limit("100/minute")
+
+
 
 # Initialiser les extensions    
 db.init_app(app)
@@ -25,6 +48,12 @@ mail = Mail(app)
 Session(app)
 CORS(app)
 # csrf = CSRFProtect(app)
+csrf = CSRFProtect()
+## Durée de vie jeton csrf
+app.config['WTF_CSRF_TIME_LIMIT'] = 600 # 600 secondes (10 minutes)
+# custom_csrf_header = 'X-MON-CSRF-TOKEN'
+csrf.init_app(app)
+
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 # ----------------- SocketIO Routes -----------------  
@@ -104,7 +133,7 @@ def start_chat(data):
 # ----------------- SocketIO Routes -----------------
         
 # Initialiser les routes
-init_routes(app,mail)
+init_routes(app,mail,csrf,limiter)
 
 
 if __name__ == '__main__':
