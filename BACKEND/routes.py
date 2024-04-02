@@ -79,6 +79,11 @@ def init_routes(app, mail,csrf,limiter):
         req_data = request.get_json()
         username = req_data['username']
         id_user = get_jwt_identity()
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         
         users = User.query.filter(
         and_(
@@ -89,6 +94,7 @@ def init_routes(app, mail,csrf,limiter):
         ).limit(100)
         
         user_data = [{'id': user.idUser, 'username': user.username} for user in users]
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify({'users': user_data}), 200
 
     
@@ -127,17 +133,18 @@ def init_routes(app, mail,csrf,limiter):
         else:
             return jsonify({'message': 'Error adding contact'}), 500
 
-<<<<<<< Updated upstream
-    @app.route('/realSignUp', methods=['POST'])
-=======
     @app.route('/signUp', methods=['POST'])
     @csrf.exempt
->>>>>>> Stashed changes
     def signUp():
         req_data = request.get_json()
         username = req_data['username']
         password = req_data['password']
         email= req_data["email"]
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         
         #Salage et hachage du mdp
         salt = os.urandom(32)
@@ -155,22 +162,10 @@ def init_routes(app, mail,csrf,limiter):
         user_id = new_user.idUser
         if new_user:
             access_token = create_access_token(identity=user_id,additional_claims={"private_key" : private_key})
-            return jsonify({'access_token': access_token}), 200
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
+            return jsonify({'access_token': access_token}), 
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
-
-    @app.route('/signUp', methods=['POST'])
-    def signUp():
-        req_data = request.get_json()
-        username = req_data['username']
-        password = req_data['password']
-        email= req_data["email"]
-
-        new_user = FakeUser(username=username, password=password, email=email)
-
-        db.session.add(new_user)
-        db.session.commit()
-
-        return jsonify({"message": "User created successfully"}), 201
 
     def generate_keys():
         # Générer une paire de clés RSA
@@ -243,6 +238,11 @@ def init_routes(app, mail,csrf,limiter):
     @jwt_required()
     def protected_route():
         current_user = get_jwt_identity()
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify({'message': 'Login successful', 'user': current_user}), 200
 
     @app.route('/contacts', methods=['GET'])
@@ -250,6 +250,11 @@ def init_routes(app, mail,csrf,limiter):
     @jwt_required()
     def get_contacts():
         id_user = get_jwt_identity()
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         
 
         # Alias for convmember and user tables
@@ -280,7 +285,7 @@ def init_routes(app, mail,csrf,limiter):
             {'conversation_id': contact.idConv, 'other_user_id': contact.other_user_id, 'other_user_name': contact.other_user_name}
             for contact in contacts
         ]
-
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify({"contacts": result}), 200
 
     # Endpoint pour révoquer le token JWT actuel
@@ -292,6 +297,13 @@ def init_routes(app, mail,csrf,limiter):
         token = TokenBlocklist(jti=jti)
         DBAPISet.session.add(token)
         db.session.commit()
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
+
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify(message="Token revoked"), 200
     
     @app.route("/recent_messages", methods=["GET"])
@@ -338,23 +350,35 @@ def init_routes(app, mail,csrf,limiter):
         id_user = get_jwt_identity()
         user = User.query.filter_by(idUser=id_user).first()
 
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
+
         if user:
             user_data = {
                 "username": user.username,
                 "email": user.email,
             }
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
             return jsonify({"user_data": user_data}), 200
-
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -404")
         return jsonify({"message": "User not found"}), 404
     
     @app.route("/edit_profile", methods=["POST"])
     @csrf.exempt
     @jwt_required()
     def edit_profile():
-        ##id_user = jwt_required()
+    
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
 
         # Vérifiez le jeton CSRF inclus dans la demande
         if 'X-CSRF-TOKEN' not in request.headers or not is_valid_csrf_token(request.headers['X-CSRF-TOKEN']):
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -403")
             return jsonify({'error': 'Invalid CSRF token'}), 403
         
         id_user = get_jwt_identity()
@@ -382,10 +406,10 @@ def init_routes(app, mail,csrf,limiter):
             user.password_hash = hashPassword(password, stored_salt)
 
             db.session.commit()
-
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
             return jsonify({"message": "User update successfully"}), 200
 
-
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -404")
         return jsonify({"message": "User not found"}), 404
 
     @app.route('/private_message', methods=['POST'])
@@ -402,8 +426,14 @@ def init_routes(app, mail,csrf,limiter):
         date = message_data.get('date')
         is_read = message_data.get('is_read')
 
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
+
         # Vérifier si toutes les données nécessaires sont présentes
         if id_conv is None or id_sender is None or content is None or date is None or is_read is None:
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -400")
             return jsonify({'error': 'Missing data'}), 400
 
         # Créer un nouvel objet Message
@@ -416,6 +446,7 @@ def init_routes(app, mail,csrf,limiter):
         print("Message sent successfully in database")
 
         # Renvoyer une réponse JSON indiquant que le message a été envoyé avec succès
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify({'message': 'Message sent successfully'}), 200
     
     @app.route('/conversation_id', methods=['POST'])
@@ -451,6 +482,10 @@ def init_routes(app, mail,csrf,limiter):
     @csrf.exempt
     def get_conversation_messages():
         print("/getmessages - Trying to get conversation messages..")
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         try:
             conversation_id = request.args.get('conversationId')
             print("Conversation ID:", conversation_id)
@@ -466,12 +501,15 @@ def init_routes(app, mail,csrf,limiter):
                                 'content': message.content,
                                 'date': message.date.isoformat(),
                                 'is_read': message.is_read} for message in conversation_messages]
+                app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
                 return jsonify(response_data), 200
             else:
                 print("No messages found for conversation ID:", conversation_id)
+                app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -404")
                 return jsonify({'message': 'No messages found for conversation ID'}), 404
         except Exception as e:
             print("Error:", e)
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -500")
             return jsonify({'error': str(e)}), 500
 
     @app.route("/conversation_users", methods=["GET"])
@@ -479,6 +517,10 @@ def init_routes(app, mail,csrf,limiter):
     @jwt_required()
     def get_conversation_users():
         conv_id = request.args.get('convId')
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
 
         # Requête pour récupérer les utilisateurs présents dans la conversation avec l'identifiant conv_id
         users_query = (db.session.query(User)
@@ -487,6 +529,7 @@ def init_routes(app, mail,csrf,limiter):
             .all())
         # Sérialisation des utilisateurs en format JSON
         users_json = [user.serialize() for user in users_query]
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify(users_json), 200
     
     @app.route('/fetchuser/<string:user_id>', methods=['GET'])
@@ -497,18 +540,27 @@ def init_routes(app, mail,csrf,limiter):
             print("Fetching user with ID:", user_id)
             # Recherche de l'utilisateur dans la base de données en fonction de son identifiant
             user = User.query.filter_by(idUser=user_id).first()
+
+            ## Informations pour les log
+            client_ip = request.remote_addr
+            http_method = request.method
+            requested_url = request.url
+
             if user:
                 # Si l'utilisateur est trouvé, retournez ses informations au format JSON
                 user_data = {
                     "idUser": user.idUser,
                     "username": user.username,
                 }
+                app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
                 return jsonify(user_data), 200
             else:
                 # Si l'utilisateur n'est pas trouvé, renvoyez une erreur 404 (non trouvé)
+                app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -404")
                 return jsonify({"message": "User not found"}), 404
         except Exception as e:
             # En cas d'erreur, renvoyer une erreur 500 (erreur interne du serveur) avec le message d'erreur
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -500")
             return jsonify({"error": str(e)}), 500
 
     @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
@@ -528,9 +580,15 @@ def init_routes(app, mail,csrf,limiter):
     def emailConfirm():
         idUser = request.args.get('idUser')
         user=db.session.query(User).filter(User.idUser == idUser).first()
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         if user:
             user.is_validate=True
             db.session.commit()
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
             return jsonify({'message': 'Account validated'}), 200
         
    
@@ -540,7 +598,12 @@ def init_routes(app, mail,csrf,limiter):
     def get_csrf_token():
         # Générez et renvoyez le jeton CSRF ici
         csrf_token = generate_csrf_token()  
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         print(f"Token Csrf obtenu : {csrf_token}")
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify({'csrf_token': csrf_token}), 200
         
 
