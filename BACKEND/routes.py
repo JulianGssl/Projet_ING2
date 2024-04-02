@@ -8,7 +8,7 @@ import flask_mail
 from pymysql import DBAPISet
 import base64
 from sqlalchemy.orm import aliased  
-from sqlalchemy import and_
+from sqlalchemy import and_, distinct
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -251,43 +251,46 @@ def init_routes(app, mail,csrf,limiter):
     def get_contacts():
         id_user = get_jwt_identity()
 
-        ## Informations pour les log
-        client_ip = request.remote_addr
-        http_method = request.method
-        requested_url = request.url
-        
-
-        # Alias for convmember and user tables
-        cm1_alias = aliased(ConvMember)
-        cm2_alias = aliased(ConvMember)
+        # Alias pour les tables
+        cm_alias = aliased(ConvMember)
         user_alias = aliased(User)
+        conv_alias = aliased(Conv)
 
+        # Sous-requête pour sélectionner distinctement les valeurs de idConv
+        subquery = db.session.query(distinct(cm_alias.idConv)).filter(cm_alias.idUser == id_user).subquery()
+
+        # Requête pour récupérer les contacts de l'utilisateur
         contacts_query = db.session.query(
-            cm1_alias.idConv,
-            cm2_alias.idUser.label('other_user_id'),
-            user_alias.username.label('other_user_name')
+            cm_alias.idUser.label('other_user_id'),
+            user_alias.username.label('other_user_name'),
+            conv_alias.idConv.label('conversation_id'),
+            conv_alias.name.label('conversation_name')
         ).join(
-            cm2_alias, cm1_alias.idConv == cm2_alias.idConv
-        ).filter(
-            cm1_alias.idUser != cm2_alias.idUser
+            user_alias, cm_alias.idUser == user_alias.idUser
         ).join(
-            Conv, cm1_alias.idConv == Conv.idConv
+            conv_alias, conv_alias.idConv == cm_alias.idConv
         ).filter(
-            Conv.type == 'private'
-        ).join(
-            user_alias, cm2_alias.idUser == user_alias.idUser
-        ).filter(
-            cm1_alias.idUser == id_user
+            cm_alias.idUser != id_user,
+            cm_alias.idConv.in_(subquery),
+            conv_alias.type == 'private'
         ).distinct()
 
+        # Récupération des résultats de la requête
         contacts = contacts_query.all()
+
+        # Création du résultat à renvoyer
         result = [
-            {'conversation_id': contact.idConv, 'other_user_id': contact.other_user_id, 'other_user_name': contact.other_user_name}
+            {
+                'other_user_id': contact.other_user_id,
+                'other_user_name': contact.other_user_name,
+                'conversation_id': contact.conversation_id,
+                'conversation_name': contact.conversation_name
+            }
             for contact in contacts
         ]
-        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-        return jsonify({"contacts": result}), 200
 
+        return jsonify({"contacts": result}), 200
+        
     # Endpoint pour révoquer le token JWT actuel
     @app.route("/logout", methods=["POST"])
     @csrf.exempt
