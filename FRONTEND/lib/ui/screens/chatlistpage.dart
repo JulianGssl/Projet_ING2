@@ -110,13 +110,13 @@ class _ChatListPageState extends State<ChatListPage> {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage(sessionToken: widget.sessionToken)));
               },
             ),
-            // ListTile(
-            //   title: Text('Contacts'),
-            //   onTap: () {
-            //     Navigator.pop(context); // Close the drawer
-            //     Navigator.push(context, MaterialPageRoute(builder: (context) => ContactPage(sessionToken: widget.sessionToken)));
-            //   },
-            // ),
+             ListTile(
+               title: Text('Contacts'),
+               onTap: () {
+                 Navigator.pop(context); // Close the drawer
+                 Navigator.push(context, MaterialPageRoute(builder: (context) => ContactPage(sessionToken: widget.sessionToken,currentUser: widget.currentUser));
+               },
+             ),
             ListTile(
               title: Text('Add Friend'),
               onTap: () {
