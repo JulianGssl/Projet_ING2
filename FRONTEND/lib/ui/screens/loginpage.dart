@@ -329,7 +329,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       //Creation des clés privé et public
       final keys = await generateKeys();
       var response = await http.post(
-        Uri.parse('$url/realSignUp'),
+        Uri.parse('$url/signUp'),
         body: jsonEncode({
           'username': _nameController.text,
           'email': _emailController.text,
