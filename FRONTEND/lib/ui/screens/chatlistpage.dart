@@ -126,7 +126,7 @@ class _ChatListPageState extends State<ChatListPage> {
               title: Text('Add Friend'),
               onTap: () {
                 Navigator.pop(context); // Close the drawer
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AddFriendPage(sessionToken: widget.sessionToken)));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AddFriendPage(sessionToken: widget.sessionToken, currentUser: widget.currentUser)));
               },
             ),
           ],
@@ -136,7 +136,7 @@ class _ChatListPageState extends State<ChatListPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddFriendPage(sessionToken: widget.sessionToken)),
+            MaterialPageRoute(builder: (context) => AddFriendPage(sessionToken: widget.sessionToken, currentUser: widget.currentUser)),
           );
         },
         child: const Icon(Icons.add),
