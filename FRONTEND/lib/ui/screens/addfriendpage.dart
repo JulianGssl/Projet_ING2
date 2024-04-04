@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import '../../models/url.dart';
+import '../../models/user.dart';
+import 'contactpage.dart';
 
 class AddFriendPage extends StatefulWidget {
   final String sessionToken;
+  final User currentUser;
 
-  const AddFriendPage({super.key, required this.sessionToken});
+  const AddFriendPage({super.key, required this.sessionToken,  required this.currentUser});
 
   @override
   _AddFriendPageState createState() => _AddFriendPageState();
@@ -62,6 +64,12 @@ class _AddFriendPageState extends State<AddFriendPage> {
       // Si l'ajout est réussi
       // Afficher un message à l'utilisateur ou effectuer une autre action
       print('Utilisateur ajouté avec succès');
+      Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ContactPage(
+                            sessionToken: widget.sessionToken,
+                            currentUser: widget.currentUser)));
     } else {
       // En cas d'échec de l'ajout
       throw Exception('Failed to add user');
