@@ -20,6 +20,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 # from flask_wtf.csrf import CSRFProtect
 import itsdangerous
+import random
 
 def init_routes(app, mail,csrf,limiter):
 
@@ -68,6 +69,8 @@ def init_routes(app, mail,csrf,limiter):
                     app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
 
                     return jsonify({'access_token': access_token}), 200
+            else:
+                return jsonify({'idUser': user.idUser}), 200
 
         app.logger.warning(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
@@ -140,6 +143,12 @@ def init_routes(app, mail,csrf,limiter):
         username = req_data['username']
         password = req_data['password']
         email= req_data["email"]
+        private_key2=req_data["privateKeyBase64"]
+        public_key2=req_data["publicKeyBase64"]
+        
+        #Génération code de validation de compte:
+        random_number = random.randint(0, 999999)
+        valid_code = f"{random_number:06}"
 
         ## Informations pour les log
         client_ip = request.remote_addr
@@ -160,10 +169,11 @@ def init_routes(app, mail,csrf,limiter):
         db.session.add(new_user)
         db.session.commit()
         user_id = new_user.idUser
+        send_email(email, valid_code)
+        
         if new_user:
-            access_token = create_access_token(identity=user_id,additional_claims={"private_key" : private_key})
-            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-            return jsonify({'access_token': access_token}), 
+            return jsonify({'idUser': user_id}), 200
+            
         app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
 
@@ -566,33 +576,30 @@ def init_routes(app, mail,csrf,limiter):
             app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -500")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
+    @app.route('/send-email/<email_user>',methods=['GET'])
     @csrf.exempt
-    def send_email(email_user, id_user):
+    def send_email(email_user, code):
         msg = flask_mail.Message("Confirmation of your account",
                     sender="whisper.confirm@gmail.com",
                     recipients=[email_user])
-        msg.body = "Hello!\n\nHere is an email to confirm your Whisper's account, please click on this link: http://localhost:8000/emailConfirm?idUser=" + str(id_user)
-
+        msg.html = f"<p>Hello!</p><p>Here is an email to confirm your Whisper's account, please enter this code : <strong>{code}</strong> to validate your account !</p>"
         mail.send(msg)
         return "Email sent successfully!"
 
 
-    @app.route('/emailConfirm', methods=['GET'])  
+    @app.route('/emailConfirm', methods=['POST'])  
     @csrf.exempt    
     def emailConfirm():
-        idUser = request.args.get('idUser')
+        req_data = request.get_json()
+        idUser = req_data['idUser']
+        input_code=req_data['code']
+        
         user=db.session.query(User).filter(User.idUser == idUser).first()
-
-        ## Informations pour les log
-        client_ip = request.remote_addr
-        http_method = request.method
-        requested_url = request.url
         if user:
-            user.is_validate=True
-            db.session.commit()
-            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-            return jsonify({'message': 'Account validated'}), 200
+            if(user.valid_code==input_code):
+                user.is_validate=True
+                db.session.commit()
+                return jsonify({'message': 'Account validated'}), 200
         
    
     @app.route('/get_CSRF', methods=['GET'])
