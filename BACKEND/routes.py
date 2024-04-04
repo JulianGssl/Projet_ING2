@@ -164,7 +164,7 @@ def init_routes(app, mail,csrf,limiter):
         # Conversion de la clé privée chiffrée en base64
         private_key_base64 = base64.b64encode(private_key_secure).decode('utf-8')
         
-        new_user = User(username=username, email=email, password_hash=hashed_password, salt=salt.hex(), public_key=public_key, private_key=private_key_base64)
+        new_user = User(username=username, email=email, valid_code=valid_code, password_hash=hashed_password, salt=salt.hex(), public_key=public_key, private_key=private_key_base64)
         
         db.session.add(new_user)
         db.session.commit()
