@@ -26,8 +26,12 @@ Future<Map<String, String>> generateKeys() async {
   };
 }
 
-void main() async {
-  final keys = await generateKeys();
-  print('Public key PEM: ${keys['publicKeyPem']}');
-  print('Private key PEM: ${keys['privateKeyPem']}');
+String generateSalt() {
+  final random = Random.secure();
+  final salt = Uint8List(32);
+  for (int i = 0; i < 32; i++) {
+    salt[i] = random.nextInt(256); // Generate a random byte (0-255)
+  }
+  String salt_base64 = base64.encode(salt);
+  return salt_base64;
 }
