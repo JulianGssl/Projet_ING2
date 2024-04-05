@@ -8,8 +8,6 @@ import '../../models/message.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-import 'chatlistpage.dart';
-
 class ChatPage extends StatefulWidget {
   final int convId;
   final String convName;
@@ -34,6 +32,7 @@ class _ChatPageState extends State<ChatPage> {
   // - IO.socket socket : Déclare une variable de type IO.Socket pouvant être null.
   // - late IO.Socket socket : Déclare une variable de type IO.Socket qui doit être initialisée avant utilisation. Déclenche une erreur si non initialisée.
   final ScrollController _scrollController = ScrollController();
+  late String _csrfToken;
 
   Future<void> _initSocketIO() async {
     // Initialisation de la connexion socket.IO
@@ -55,6 +54,28 @@ class _ChatPageState extends State<ChatPage> {
       'groupName': groupName
       });
   }
+Future<String> _fetchCSRFToken(String formRoute, int formId) async {
+  final response = await http.post(
+    Uri.parse('$url/$formRoute'),
+    headers: {
+      'Authorization': 'Bearer ${widget.sessionToken}',
+      'Content-Type': 'application/json'
+    },
+    body: jsonEncode({'form_id': formId}),  // Inclure l'identifiant du formulaire dans le corps de la requête
+  );
+
+  if (response.statusCode == 200) {
+    var responseData = json.decode(response.body);
+    String csrfToken = responseData['csrf_token'];
+    setState(() {
+      _csrfToken = csrfToken;
+    });
+    return response.body;
+  } else {
+    throw Exception('Failed to load CSRF token');
+  }
+}
+
 
   Future<void> _fetchMessages(int conversationId) async {
     try {
@@ -83,13 +104,15 @@ class _ChatPageState extends State<ChatPage> {
     print("/chatpage.dart - _addMessage called");
 
         Map<String, dynamic> messageData = {
-        'id_conv': widget.convId,
+        'id_conv': 1, // Remplacez 1 par l'ID de la conversation appropriée
         'recipient': widget.convName,
         'sender_name': widget.currentUser.username,
         'id_sender': widget.currentUser.id,
         'content': text,
         'date': DateTime.now().toIso8601String(),
         'is_read': false, // Le message envoyé est par défaut non lu
+        'X-CSRF-TOKEN': _csrfToken,
+        'Authorization': 'Bearer ${widget.sessionToken}',
       };
 
       // Envoi du message via socket.IO pour une communication en temps réel
@@ -101,6 +124,8 @@ class _ChatPageState extends State<ChatPage> {
         Uri.parse('$url/private_message'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'X-CSRF-TOKEN': _csrfToken,
+          'Authorization': 'Bearer ${widget.sessionToken}',
         },
         body: jsonEncode(messageData),
       );
@@ -128,6 +153,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    _fetchCSRFToken('get_CSRF/private_message',3); // Récupérer le jeton csrf
     print("----------------- ChatPage - initState -----------------");
     // Initialisez la connexion SocketIO
     print("Calling _initSocketIO");
@@ -180,12 +206,7 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => ChatListPage(sessionToken: widget.sessionToken, currentUser: widget.currentUser)),
-            );
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
         backgroundColor: Colors.white,
         title: Row(

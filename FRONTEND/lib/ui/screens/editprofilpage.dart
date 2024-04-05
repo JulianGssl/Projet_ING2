@@ -34,7 +34,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    _fetchCSRFToken();
+    _fetchCSRFToken('get_CSRF/edit_profile',1);
     _fetchGetProfile();
   } 
 
@@ -48,22 +48,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
 
-  Future<String> _fetchCSRFToken() async {
-  final response = await http.get(
-        Uri.parse('$url/get_CSRF'),
-        headers: {'Authorization': 'Bearer ${widget.sessionToken}', 'Content-Type': 'application/json'},
-      );
+//   Future<String> _fetchCSRFToken() async {
+//   final response = await http.get(
+//         Uri.parse('$url/get_CSRF'),
+//         headers: {'Authorization': 'Bearer ${widget.sessionToken}', 'Content-Type': 'application/json'},
+//       );
+//   if (response.statusCode == 200) {
+//     var responseData=json.decode(response.body);
+//     String csrfToken = responseData['csrf_token'];
+//     setState(() {
+//         _csrfToken = csrfToken;
+//       });
+//     return response.body;
+//   } else {
+//     throw Exception('Failed to load CSRF token');
+//   }
+// }
+
+Future<String> _fetchCSRFToken(String formRoute, int formId) async {
+  final response = await http.post(
+    Uri.parse('$url/$formRoute'),
+    headers: {
+      'Authorization': 'Bearer ${widget.sessionToken}',
+      'Content-Type': 'application/json'
+    },
+    body: jsonEncode({'form_id': formId}),  // Inclure l'identifiant du formulaire dans le corps de la requête
+  );
+
   if (response.statusCode == 200) {
-    var responseData=json.decode(response.body);
+    var responseData = json.decode(response.body);
     String csrfToken = responseData['csrf_token'];
     setState(() {
-        _csrfToken = csrfToken;
-      });
+      _csrfToken = csrfToken;
+    });
     return response.body;
   } else {
     throw Exception('Failed to load CSRF token');
   }
 }
+
+
 
 
   void _fetchGetProfile() async {

@@ -18,18 +18,47 @@ class _AddFriendPageState extends State<AddFriendPage> {
       []; // Liste de maps pour stocker les utilisateurs (nom d'utilisateur et ID)
 
   TextEditingController searchController = TextEditingController();
+  late String _csrfToken;
+
 
   @override
   void initState() {
+    _fetchCSRFToken('get_CSRF/displayUserByName',2);
     super.initState();
   }
+
+
+  
+
+Future<String> _fetchCSRFToken(String formRoute, int formId) async {
+  final response = await http.post(
+    Uri.parse('$url/$formRoute'),
+    headers: {
+      'Authorization': 'Bearer ${widget.sessionToken}',
+      'Content-Type': 'application/json'
+    },
+    body: jsonEncode({'form_id': formId}),  // Inclure l'identifiant du formulaire dans le corps de la requête
+  );
+
+  if (response.statusCode == 200) {
+    var responseData = json.decode(response.body);
+    String csrfToken = responseData['csrf_token'];
+    setState(() {
+      _csrfToken = csrfToken;
+    });
+    return response.body;
+  } else {
+    throw Exception('Failed to load CSRF token');
+  }
+}
 
   // Fonction pour récupérer les utilisateurs depuis le backend Flask
   Future<void> fetchUsers(String username) async {
     final response = await http.post(Uri.parse('$url/displayUserByName'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.sessionToken}'
+          'Authorization': 'Bearer ${widget.sessionToken}',
+          'X-CSRF-TOKEN': _csrfToken,
         },
         body: json.encode({'username': username}));
 

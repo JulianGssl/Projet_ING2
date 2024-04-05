@@ -20,6 +20,14 @@ import logging
 from logging.handlers import RotatingFileHandler
 # from flask_wtf.csrf import CSRFProtect
 import itsdangerous
+from cryptography.hazmat.primitives.asymmetric import x25519
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+import base64
+
+# Taille de la clé AES-GCM pour une clé X25519 de 256 bits
+KEY_SIZE = 32
 
 def init_routes(app, mail,csrf,limiter):
 
@@ -84,6 +92,11 @@ def init_routes(app, mail,csrf,limiter):
         client_ip = request.remote_addr
         http_method = request.method
         requested_url = request.url
+
+        # Vérifiez le jeton CSRF inclus dans la demande
+        if 'X-CSRF-TOKEN' not in request.headers or not is_valid_csrf_token(request.headers['X-CSRF-TOKEN'],2):
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -403")
+            return jsonify({'error': 'Invalid CSRF token'}), 403
         
         users = User.query.filter(
         and_(
@@ -171,7 +184,8 @@ def init_routes(app, mail,csrf,limiter):
         # Générer une paire de clés RSA
         privateKey = rsa.generate_private_key(
             public_exponent=65537,  # Exposant public couramment utilisé
-            key_size=2048,          # Taille de la clé en bits
+            # key_size=2048,          # Taille de la clé en bits
+            key_size=256,          # Taille de la clé en bits
             backend=default_backend()
         )
         # Obtenir la clé publique à partir de la clé privée
@@ -377,7 +391,7 @@ def init_routes(app, mail,csrf,limiter):
         requested_url = request.url
 
         # Vérifiez le jeton CSRF inclus dans la demande
-        if 'X-CSRF-TOKEN' not in request.headers or not is_valid_csrf_token(request.headers['X-CSRF-TOKEN']):
+        if 'X-CSRF-TOKEN' not in request.headers or not is_valid_csrf_token(request.headers['X-CSRF-TOKEN'],1):
             app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -403")
             return jsonify({'error': 'Invalid CSRF token'}), 403
         
@@ -414,7 +428,19 @@ def init_routes(app, mail,csrf,limiter):
 
     @app.route('/private_message', methods=['POST'])
     @csrf.exempt
+    @jwt_required()
     def send_message():
+
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
+
+        # Vérifiez le jeton CSRF inclus dans la demande
+        if 'X-CSRF-TOKEN' not in request.headers or not is_valid_csrf_token(request.headers['X-CSRF-TOKEN'],3):
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -403")
+            return jsonify({'error': 'Invalid CSRF token'}), 403
+        
         print("Trying to send message in database..")
         # Récupérer les données JSON envoyées dans le corps de la requête POST
         message_data = request.get_json()
@@ -426,10 +452,7 @@ def init_routes(app, mail,csrf,limiter):
         date = message_data.get('date')
         is_read = message_data.get('is_read')
 
-        ## Informations pour les log
-        client_ip = request.remote_addr
-        http_method = request.method
-        requested_url = request.url
+        
 
         # Vérifier si toutes les données nécessaires sont présentes
         if id_conv is None or id_sender is None or content is None or date is None or is_read is None:
@@ -452,10 +475,19 @@ def init_routes(app, mail,csrf,limiter):
     @app.route('/conversation_id', methods=['POST'])
     @csrf.exempt
     def get_conversation_id():
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
+        # Vérifiez le jeton CSRF inclus dans la demande
+        if 'X-CSRF-TOKEN' not in request.headers or not is_valid_csrf_token(request.headers['X-CSRF-TOKEN'],4):
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -403")
+            return jsonify({'error': 'Invalid CSRF token'}), 403
         print("Trying to get conversation id..")
         req_data = request.get_json()
         user1 = req_data['user1']
         user2 = req_data['user2']
+
         print("Users: {} and {}".format(user1, user2))
 
         try:
@@ -592,20 +624,62 @@ def init_routes(app, mail,csrf,limiter):
             return jsonify({'message': 'Account validated'}), 200
         
    
-    @app.route('/get_CSRF', methods=['GET'])
+    # @app.route('/get_CSRF', methods=['GET'])
+    # @csrf.exempt
+    # @jwt_required()
+    # def get_csrf_token():
+    #     # Générez et renvoyez le jeton CSRF ici
+    #     csrf_token = generate_csrf_token()  
+    #     ## Informations pour les log
+    #     client_ip = request.remote_addr
+    #     http_method = request.method
+    #     requested_url = request.url
+    #     print(f"Token Csrf obtenu : {csrf_token}")
+    #     app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
+    #     return jsonify({'csrf_token': csrf_token}), 200
+        
+
+    
+    ##@app.route('/get_CSRF/private_message/<int:form_id>', methods=['GET'])
+    ## @app.route('/get_CSRF/conversation_id/<int:form_id>', methods=['GET'])
+
+    @app.route('/get_CSRF/edit_profile/<int:form_id>', methods=['GET'])
+    # @app.route('/get_CSRF/displayUserByName/<int:form_id>', methods=['GET'])
+    # @app.route('/get_CSRF/private_message/<int:form_id>', methods=['GET'])
+    # @csrf.exempt
+    # @jwt_required()
+    # def get_csrf_token(form_id):
+    #     # Générez et renvoyez le jeton CSRF ici en utilisant form_id si nécessaire
+    #     csrf_token = generate_csrf_token(form_id)
+        
+    #     ## Informations pour les log
+    #     client_ip = request.remote_addr
+    #     http_method = request.method
+    #     requested_url = request.url
+    #     print(f"Token Csrf obtenu : {csrf_token}")
+    #     app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
+    #     return jsonify({'csrf_token': csrf_token}), 200
+    @app.route('/get_CSRF/edit_profile', methods=['POST'])
+    @app.route('/get_CSRF/displayUserByName', methods=['POST'])
+    @app.route('/get_CSRF/private_message', methods=['POST'])
     @csrf.exempt
     @jwt_required()
     def get_csrf_token():
-        # Générez et renvoyez le jeton CSRF ici
-        csrf_token = generate_csrf_token()  
-        ## Informations pour les log
+        form_id = request.json.get('form_id')  # Obtenir l'identifiant du formulaire à partir du corps de la requête
+        if form_id is None:
+            return jsonify({'error': 'Identifiant du formulaire manquant dans la requête'}), 400
+        
+        # Générez et renvoyez le jeton CSRF ici en utilisant form_id si nécessaire
+        csrf_token = generate_csrf_token(form_id)
+        
+        ## Informations pour les logs
         client_ip = request.remote_addr
         http_method = request.method
         requested_url = request.url
         print(f"Token Csrf obtenu : {csrf_token}")
         app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-        return jsonify({'csrf_token': csrf_token}), 200
         
+        return jsonify({'csrf_token': csrf_token}), 200
 
             
 ######################################################################################################
@@ -618,17 +692,18 @@ def init_routes(app, mail,csrf,limiter):
     # Créez un sérialiseur avec une clé secrète
     csrf_serializer = itsdangerous.URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-    # Générer un jeton CSRF
-    def generate_csrf_token():
-        return csrf_serializer.dumps({'csrf': True})
+    # Générer un jeton CSRF pour un formulaire spécifique
+    def generate_csrf_token(form_id):
+        return csrf_serializer.dumps({'csrf': True, 'form_id': form_id})
 
-    # Vérifier le jeton CSRF
-    def is_valid_csrf_token(csrf_token):
+    # Vérifier le jeton CSRF en tenant compte de l'identifiant du formulaire
+    def is_valid_csrf_token(csrf_token, form_id):
         try:
-            data = csrf_serializer.loads(csrf_token, max_age=600)  # Vérifiez si le jeton n'a pas expiré après 600 secondes (10 minutes)
-            return data.get('csrf') == True
+            data = csrf_serializer.loads(csrf_token, max_age=600)  
+            return data.get('csrf') == True and data.get('form_id') == form_id
         except itsdangerous.BadData:
             return False
+
 
 ######################################################################################################
 
