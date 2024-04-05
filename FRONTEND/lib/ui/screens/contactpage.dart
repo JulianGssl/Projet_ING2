@@ -19,11 +19,14 @@ class ContactPage extends StatefulWidget {
 
 class _ContactPageState extends State<ContactPage> {
   List<dynamic> _contacts = [];
+  late CustomSearch _searchDelegate;
 
   @override
   void initState() {
     super.initState();
     _fetchGetContacts();
+    _searchDelegate = CustomSearch(
+        currentUser: widget.currentUser, sessionToken: widget.sessionToken);
   }
 
   void _fetchGetContacts() async {
@@ -38,6 +41,7 @@ class _ContactPageState extends State<ContactPage> {
         setState(() {
           _contacts = data['contacts'];
         });
+        _searchDelegate.updateSearchTerms(_contacts);
       } else {
         print('Response is not in JSON format');
       }
@@ -59,6 +63,14 @@ class _ContactPageState extends State<ContactPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Contact Page'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              showSearch(context: context, delegate: _searchDelegate);
+            },
+            icon: const Icon(Icons.search),
+          )
+        ],
       ),
       body: ListView.builder(
         itemCount: groupedContacts.keys.length,
@@ -120,3 +132,112 @@ class ChatList extends StatelessWidget {
     );
   }
 }
+
+class CustomSearch extends SearchDelegate {
+  final User currentUser;
+  final String sessionToken;
+
+  List<String> searchTerms = [];
+  List<dynamic> _contacts = [];
+
+  CustomSearch({required this.currentUser, required this.sessionToken});
+
+  void updateSearchTerms(List<dynamic> contacts) {
+    _contacts = contacts;
+    searchTerms.clear();
+    for (var contact in _contacts) {
+      searchTerms.add(contact['other_user_name']);
+    }
+  }
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        onPressed: () {
+          query = '';
+        },
+        icon: Icon(Icons.clear),
+      )
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        close(context, null);
+      },
+      icon: Icon(Icons.arrow_back),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    List<dynamic> matchContacts = [];
+    for (var contact in _contacts) {
+      if (contact['other_user_name']
+          .toLowerCase()
+          .contains(query!.toLowerCase())) {
+        matchContacts.add(contact);
+      }
+    }
+    return ListView.builder(
+      itemCount: matchContacts.length,
+      itemBuilder: (context, index) {
+        var result = matchContacts[index];
+        return ListTile(
+          title: Text(result['other_user_name']),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatPage(
+                  currentUser: currentUser,
+                  convId: result['conversation_id'],
+                  convName: result['conversation_name'],
+                  sessionToken: sessionToken,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    List<dynamic> matchContacts = [];
+    for (var contact in _contacts) {
+      if (contact['other_user_name']
+          .toLowerCase()
+          .contains(query!.toLowerCase())) {
+        matchContacts.add(contact);
+      }
+    }
+    return ListView.builder(
+      itemCount: matchContacts.length,
+      itemBuilder: (context, index) {
+        var result = matchContacts[index];
+        return ListTile(
+          title: Text(result['other_user_name']),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatPage(
+                  currentUser: currentUser,
+                  convId: result['conversation_id'],
+                  convName: result['conversation_name'],
+                  sessionToken: sessionToken,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
