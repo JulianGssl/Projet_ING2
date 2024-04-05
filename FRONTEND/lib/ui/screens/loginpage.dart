@@ -11,6 +11,10 @@ import 'chatlistpage.dart';
 import 'validationpage.dart';
 import '../../utils/key_generation.dart';
 
+import '../../utils/key_generation.dart';
+import '../../utils/crypto.dart';
+
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -249,12 +253,31 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
         var responseData = json.decode(response.body);
         if (responseData['access_token'] != null) {
           String sessionToken = responseData['access_token'];
+
           Map<String, dynamic> decodedToken = Jwt.parseJwt(sessionToken);
+
           int userId = decodedToken['idUser'];
           String username =
               '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
           // Création de l'objet User de l'utilisateur connecté
-          User loggedUser = User(id: userId, username: username);
+          String passwordUser = _passwordController.text;
+
+          Uint8List salt =
+              Uint8List.fromList(utf8.encode(decodedToken["salt"]));
+          SimplePublicKey public_key =
+              await simplePublickeyFromBase64(decodedToken["public_key"]);
+          SecretKey private_key = await secretKeyFromBase64(
+              await decryptPrivateKey(decodedToken["private_key_encrypted"],
+                  passwordUser, salt, salt));
+
+          User loggedUser = User(
+              id: userId,
+              username: username,
+              password: passwordUser,
+              salt: salt,
+              publicKey: public_key,
+              privateKey: private_key);
+          print("User : $loggedUser");
           print("User : ${loggedUser.id} | ${loggedUser.username}");
           //SI le compte est validé on envoie vers chatlistpage sinon on envoie vers la page de verif
 
@@ -326,17 +349,20 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
 
   void _handleSignUpButtonPressed() async {
     if (verifPassword(_passwordControllerSignUp.text)) {
-      //Creation des clés privé et public
       final keys = await generateKeys();
+      String salt = generateSalt();
+      Uint8List salt_converted = Uint8List.fromList(utf8.encode(salt));
       var response = await http.post(
-        Uri.parse('$url/signUp'),
+        Uri.parse('$url/realSignUp'),
         body: jsonEncode({
           'username': _nameController.text,
           'email': _emailController.text,
           'password': _passwordControllerSignUp.text,
           'publicKeyBase64':
               keys['publicKeyBase64'], // Ajout de la clé publique
-          'privateKeyBase64': keys['privateKeyBase64']
+          'privateKeyBase64': await encryptPrivateKey(keys['privateKeyBase64']!,
+              _passwordControllerSignUp.text, salt_converted, salt_converted),
+          'salt': salt
         }),
         headers: {'Content-Type': 'application/json'},
       );
