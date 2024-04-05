@@ -159,8 +159,6 @@ def init_routes(app, mail,csrf,limiter):
         #Salage et hachage du mdp
         hashed_password = hashPassword(password, salt)
         
-        private_key_secure=encrypt_private_key(private_key,password,salt)
-        
         new_user = User(username=username, email=email, valid_code=valid_code, password_hash=hashed_password, salt=salt, public_key=public_key, private_key=private_key)
         
         db.session.add(new_user)
