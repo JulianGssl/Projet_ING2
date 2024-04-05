@@ -447,6 +447,11 @@ def init_routes(app, mail,csrf,limiter):
             
             if conversation_messages:
                 print("Messages found for conversation ID:", conversation_id)
+                #Mettre is_read à 1 pr chaque message
+                for message in conversation_messages:
+                    message.is_read = True
+                    db.session.commit()
+                
                 # Préparation des données de réponse au format JSON
                 response_data = [{'id_conv': message.id_conv,
                                 'id_sender': message.id_sender,
