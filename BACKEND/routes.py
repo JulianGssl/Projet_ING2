@@ -8,7 +8,7 @@ import flask_mail
 from pymysql import DBAPISet
 import base64
 from sqlalchemy.orm import aliased  
-from sqlalchemy import and_
+from sqlalchemy import and_, distinct
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -20,14 +20,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 # from flask_wtf.csrf import CSRFProtect
 import itsdangerous
-from cryptography.hazmat.primitives.asymmetric import x25519
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-import os
-import base64
-
-# Taille de la clé AES-GCM pour une clé X25519 de 256 bits
-KEY_SIZE = 32
+import random
 
 def init_routes(app, mail,csrf,limiter):
 
@@ -63,19 +56,20 @@ def init_routes(app, mail,csrf,limiter):
         user = User.query.filter_by(username=username).first()
         if user:
             if user.is_validate==True:
-                stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
+                stored_salt = user.salt #On converti la chaine de caractère en byte
                 stored_password_hash = user.password_hash
 
                 #on compare le hash du mdp rentré et le mdp hashé dans la bdd
                 hashed_password=hashPassword(password,stored_salt)
                 if(stored_password_hash==hashed_password):
 
-                    private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
                     # Si l'utilisateur est authentifié, créer un token JWT
-                    access_token = create_access_token(identity=user.idUser,additional_claims={"idUser" : user.idUser, "private_key" : private_key})
+                    access_token = create_access_token(identity=user.idUser,additional_claims={"idUser" : user.idUser, "public_key": user.public_key, "private_key_encrypted" : user.private_key, "salt": user.salt})
                     app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
 
                     return jsonify({'access_token': access_token}), 200
+            else:
+                return jsonify({'idUser': user.idUser}), 200
 
         app.logger.warning(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
@@ -154,92 +148,38 @@ def init_routes(app, mail,csrf,limiter):
         password = req_data['password']
         email= req_data["email"]
 
+        private_key=req_data["privateKeyBase64"]
+        public_key=req_data["publicKeyBase64"]
+        salt=req_data["salt"]
+        
+        #Génération code de validation de compte:
+        random_number = random.randint(0, 999999)
+        valid_code = f"{random_number:06}"
+
         ## Informations pour les log
         client_ip = request.remote_addr
         http_method = request.method
         requested_url = request.url
         
         #Salage et hachage du mdp
-        salt = os.urandom(32)
         hashed_password = hashPassword(password, salt)
-        public_key,private_key=generate_keys()
         
-        private_key_secure=encrypt_private_key(private_key,password,salt)
-        # Conversion de la clé privée chiffrée en base64
-        private_key_base64 = base64.b64encode(private_key_secure).decode('utf-8')
-        
-        new_user = User(username=username, email=email, password_hash=hashed_password, salt=salt.hex(), public_key=public_key, private_key=private_key_base64)
+        new_user = User(username=username, email=email, valid_code=valid_code, password_hash=hashed_password, salt=salt, public_key=public_key, private_key=private_key)
         
         db.session.add(new_user)
         db.session.commit()
         user_id = new_user.idUser
+        send_email(email, valid_code)
+        
         if new_user:
-            access_token = create_access_token(identity=user_id,additional_claims={"private_key" : private_key})
-            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-            return jsonify({'access_token': access_token}), 
+            return jsonify({'idUser': user_id}), 200
+            
         app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
 
-    def generate_keys():
-        # Générer une paire de clés RSA
-        privateKey = rsa.generate_private_key(
-            public_exponent=65537,  # Exposant public couramment utilisé
-            # key_size=2048,          # Taille de la clé en bits
-            key_size=256,          # Taille de la clé en bits
-            backend=default_backend()
-        )
-        # Obtenir la clé publique à partir de la clé privée
-        publicKey = privateKey.public_key()
-        # Sérialiser la clé publique au format PEM
-        publicKey_pem = publicKey.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        
-        privateKey_pem = privateKey.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-        ).decode()
-        
-        return publicKey_pem, privateKey_pem
-    
-    def derive_key(password, salt):
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-            backend=default_backend()
-        )
-        return kdf.derive(password.encode())
-    
-    def encrypt_private_key(private_key, password,salt):
-        key = derive_key(password, salt)
-        iv = os.urandom(16)
-        cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        encrypted_private_key = encryptor.update(private_key.encode()) + encryptor.finalize()
-        return encrypted_private_key
-    
-    def decrypt_private_key(encrypted_private_key_base64, salt, password):
-        encrypted_private_key = base64.b64decode(encrypted_private_key_base64)
-        # Dérivation de la clé de chiffrement à partir du mot de passe et du sel
-        key = derive_key(password, salt)
-        # Générer un vecteur d'initialisation (IV) aléatoire
-        iv = os.urandom(16)
-        # Créer un objet Cipher avec l'algorithme AES en mode CFB
-        cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-        # Créer un objet decryptor pour déchiffrer les données
-        decryptor = cipher.decryptor()
-        # Déchiffrer la clé privée
-        decrypted_private_key = decryptor.update(encrypted_private_key) + decryptor.finalize()
-        # Retourner la clé privée déchiffrée
-        return decrypted_private_key
-    
     def hashPassword(password, salt):
         # Ajouter le sel au mot de passe
-        salted_password = password.encode() + salt
+        salted_password = password.encode() + salt.encode()
 
         # Hacher le mot de passe avec le sel en utilisant SHA-256
         hash_object = SHA256.new(data=salted_password)
@@ -265,43 +205,46 @@ def init_routes(app, mail,csrf,limiter):
     def get_contacts():
         id_user = get_jwt_identity()
 
-        ## Informations pour les log
-        client_ip = request.remote_addr
-        http_method = request.method
-        requested_url = request.url
-        
-
-        # Alias for convmember and user tables
-        cm1_alias = aliased(ConvMember)
-        cm2_alias = aliased(ConvMember)
+        # Alias pour les tables
+        cm_alias = aliased(ConvMember)
         user_alias = aliased(User)
+        conv_alias = aliased(Conv)
 
+        # Sous-requête pour sélectionner distinctement les valeurs de idConv
+        subquery = db.session.query(distinct(cm_alias.idConv)).filter(cm_alias.idUser == id_user).subquery()
+
+        # Requête pour récupérer les contacts de l'utilisateur
         contacts_query = db.session.query(
-            cm1_alias.idConv,
-            cm2_alias.idUser.label('other_user_id'),
-            user_alias.username.label('other_user_name')
+            cm_alias.idUser.label('other_user_id'),
+            user_alias.username.label('other_user_name'),
+            conv_alias.idConv.label('conversation_id'),
+            conv_alias.name.label('conversation_name')
         ).join(
-            cm2_alias, cm1_alias.idConv == cm2_alias.idConv
-        ).filter(
-            cm1_alias.idUser != cm2_alias.idUser
+            user_alias, cm_alias.idUser == user_alias.idUser
         ).join(
-            Conv, cm1_alias.idConv == Conv.idConv
+            conv_alias, conv_alias.idConv == cm_alias.idConv
         ).filter(
-            Conv.type == 'private'
-        ).join(
-            user_alias, cm2_alias.idUser == user_alias.idUser
-        ).filter(
-            cm1_alias.idUser == id_user
+            cm_alias.idUser != id_user,
+            cm_alias.idConv.in_(subquery),
+            conv_alias.type == 'private'
         ).distinct()
 
+        # Récupération des résultats de la requête
         contacts = contacts_query.all()
+
+        # Création du résultat à renvoyer
         result = [
-            {'conversation_id': contact.idConv, 'other_user_id': contact.other_user_id, 'other_user_name': contact.other_user_name}
+            {
+                'other_user_id': contact.other_user_id,
+                'other_user_name': contact.other_user_name,
+                'conversation_id': contact.conversation_id,
+                'conversation_name': contact.conversation_name
+            }
             for contact in contacts
         ]
-        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-        return jsonify({"contacts": result}), 200
 
+        return jsonify({"contacts": result}), 200
+        
     # Endpoint pour révoquer le token JWT actuel
     @app.route("/logout", methods=["POST"])
     @csrf.exempt
@@ -527,6 +470,11 @@ def init_routes(app, mail,csrf,limiter):
             
             if conversation_messages:
                 print("Messages found for conversation ID:", conversation_id)
+                #Mettre is_read à 1 pr chaque message
+                for message in conversation_messages:
+                    message.is_read = True
+                    db.session.commit()
+                
                 # Préparation des données de réponse au format JSON
                 response_data = [{'id_conv': message.id_conv,
                                 'id_sender': message.id_sender,
@@ -595,33 +543,30 @@ def init_routes(app, mail,csrf,limiter):
             app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -500")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/send-email/<email_user>/<id_user>',methods=['GET'])
+    @app.route('/send-email/<email_user>',methods=['GET'])
     @csrf.exempt
-    def send_email(email_user, id_user):
+    def send_email(email_user, code):
         msg = flask_mail.Message("Confirmation of your account",
                     sender="whisper.confirm@gmail.com",
                     recipients=[email_user])
-        msg.body = "Hello!\n\nHere is an email to confirm your Whisper's account, please click on this link: http://localhost:8000/emailConfirm?idUser=" + str(id_user)
-
+        msg.html = f"<p>Hello!</p><p>Here is an email to confirm your Whisper's account, please enter this code : <strong>{code}</strong> to validate your account !</p>"
         mail.send(msg)
         return "Email sent successfully!"
 
 
-    @app.route('/emailConfirm', methods=['GET'])  
+    @app.route('/emailConfirm', methods=['POST'])  
     @csrf.exempt    
     def emailConfirm():
-        idUser = request.args.get('idUser')
+        req_data = request.get_json()
+        idUser = req_data['idUser']
+        input_code=req_data['code']
+        
         user=db.session.query(User).filter(User.idUser == idUser).first()
-
-        ## Informations pour les log
-        client_ip = request.remote_addr
-        http_method = request.method
-        requested_url = request.url
         if user:
-            user.is_validate=True
-            db.session.commit()
-            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-            return jsonify({'message': 'Account validated'}), 200
+            if(user.valid_code==input_code):
+                user.is_validate=True
+                db.session.commit()
+                return jsonify({'message': 'Account validated'}), 200
         
    
     # @app.route('/get_CSRF', methods=['GET'])

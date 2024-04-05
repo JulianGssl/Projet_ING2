@@ -42,10 +42,21 @@ class _ChatPageState extends State<ChatPage> {
     });
     // Connexion au serveur socket.IO
     print("   - _initSocketIO : trying to connect..");
+    socket.connect();
     socket.on('connectResponse', (data) {
       print('Connected to the server');
       print('Received message: $data');
     });
+  }
+
+  @override
+  void dispose() {
+    // Arrêtez les timers ou les écouteurs d'événements ici
+    if (socket.connected) {
+      socket.disconnect(); // Déconnecte le socket
+      socket.destroy(); // Détruit le socket
+    }
+    super.dispose();
   }
 
   void startChat(groupName) {
@@ -185,16 +196,18 @@ Future<String> _fetchCSRFToken(String formRoute, int formId) async {
       print("/chatpage.dart - Message reçu : " + data['content']);
 
       // Ajout du message reçu à la liste des messages dynamiquement dans l'affichage
-      setState(() { 
-        _messages.add(Message(
-          idConv: data['id_conv'], // Utilisation de 'idConv' au lieu de 'id_conv'
-          idSender: data['id_sender'], // Utilisation de 'idSender' au lieu de 'id_sender'
-          content: data['content'],
-          date: DateTime.parse(data['date']),
-          isRead: data['is_read'], // Utilisation directe de la valeur booléenne
-        ));
-        _scrollToBottom();
-      });
+      if (mounted) { //! Permet d'éviter des erreurs si le widget n'est pas monté
+        setState(() { 
+          _messages.add(Message(
+            idConv: data['id_conv'], // Utilisation de 'idConv' au lieu de 'id_conv'
+            idSender: data['id_sender'], // Utilisation de 'idSender' au lieu de 'id_sender'
+            content: data['content'],
+            date: DateTime.parse(data['date']),
+            isRead: data['is_read'], // Utilisation directe de la valeur booléenne
+          ));
+          _scrollToBottom();
+        });
+      }
       print("/chatpage.dart - end of event 'new_message'");
     });
   }

@@ -11,6 +11,7 @@ class User(db.Model):
     username = db.Column(db.String(45), nullable=True)
     email = db.Column(db.String(45), nullable=True, unique=True)
     is_validate=db.Column(db.Boolean, default=False)
+    valid_code=db.Column(db.String(6),nullable=True)
     password_hash = db.Column(db.String(255), nullable=True)
     salt = db.Column(db.String(255),nullable=True)
     public_key = db.Column(db.String(4096),nullable=True)

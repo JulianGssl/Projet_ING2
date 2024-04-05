@@ -8,6 +8,12 @@ import '../../models/url.dart';
 import 'package:jwt_decode/jwt_decode.dart';
 
 import 'chatlistpage.dart';
+import 'validationpage.dart';
+import '../../utils/key_generation.dart';
+
+import '../../utils/key_generation.dart';
+import '../../utils/crypto.dart';
+
 
 class MyApp extends StatelessWidget {
   @override
@@ -229,7 +235,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
     );
   }
 
-  void _handleLoginButtonPressed() async {
+   void _handleLoginButtonPressed() async {
     print("Trying to login...");
     nbLoginTry++;
     if (nbLoginTry <= 3) {
@@ -245,23 +251,58 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
         print("Login successful, navigating to ChatListPage");
         // Navigation vers la page ChatListPage
         var responseData = json.decode(response.body);
-        String sessionToken = responseData['access_token'];
-        Map<String, dynamic> decodedToken = Jwt.parseJwt(sessionToken);
-        int userId = decodedToken['idUser'];
-        String username = '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
-        // Création de l'objet User de l'utilisateur connecté
-        User loggedUser = User(id: userId, username: username);
-        print("User : ${loggedUser.id} | ${loggedUser.username}");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatListPage(
-              sessionToken: sessionToken,
-              currentUser: loggedUser, // Passage de l'objet user à ChatListPage
+        if (responseData['access_token'] != null) {
+          String sessionToken = responseData['access_token'];
+
+          Map<String, dynamic> decodedToken = Jwt.parseJwt(sessionToken);
+
+          int userId = decodedToken['idUser'];
+          String username =
+              '${_usernameController.text}#$userId'; // Concaténation du nom d'utilisateur avec l'ID
+          // Création de l'objet User de l'utilisateur connecté
+          String passwordUser = _passwordController.text;
+
+          Uint8List salt =
+              Uint8List.fromList(utf8.encode(decodedToken["salt"]));
+          SimplePublicKey public_key =
+              await simplePublickeyFromBase64(decodedToken["public_key"]);
+          SecretKey private_key = await secretKeyFromBase64(
+              await decryptPrivateKey(decodedToken["private_key_encrypted"],
+                  passwordUser, salt, salt));
+
+          User loggedUser = User(
+              id: userId,
+              username: username,
+              password: passwordUser,
+              salt: salt,
+              publicKey: public_key,
+              privateKey: private_key);
+          print("User : $loggedUser");
+          print("User : ${loggedUser.id} | ${loggedUser.username}");
+          //SI le compte est validé on envoie vers chatlistpage sinon on envoie vers la page de verif
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatListPage(
+                sessionToken: sessionToken,
+                currentUser:
+                    loggedUser, // Passage de l'objet user à ChatListPage
+              ),
             ),
-          ),
-        );
-    } else {
+          );
+        } else {
+          int idUser = responseData['idUser'];
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ValidPage(
+                idUser: idUser,
+              ),
+            ),
+          );
+        }
+      } else {
         print("Invalid credentials received");
         setState(() {
           _errorMessage = 'Invalid credentials. Please try again.';
@@ -308,27 +349,35 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
 
   void _handleSignUpButtonPressed() async {
     if (verifPassword(_passwordControllerSignUp.text)) {
+      final keys = await generateKeys();
+      String salt = generateSalt();
+      Uint8List salt_converted = Uint8List.fromList(utf8.encode(salt));
       var response = await http.post(
         Uri.parse('$url/signUp'),
         body: jsonEncode({
           'username': _nameController.text,
           'email': _emailController.text,
-          'password': _passwordControllerSignUp.text
+          'password': _passwordControllerSignUp.text,
+          'publicKeyBase64':
+              keys['publicKeyBase64'], // Ajout de la clé publique
+          'privateKeyBase64': await encryptPrivateKey(keys['privateKeyBase64']!,
+              _passwordControllerSignUp.text, salt_converted, salt_converted),
+          'salt': salt
         }),
         headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode == 200) {
-        print("Inscritpion successful, navigating to ChatListPage");
-        // Navigation vers la page ChatListPage
+        print("Inscritpion successful, navigating to ValidPage");
         var responseData = json.decode(response.body);
-        _successSignUp = responseData['message'];
-        setState(() {
-          _nameController.text =
-              ''; // Vide le champ de saisie du nom d'utilisateur
-          _emailController.text = '';
-          _passwordControllerSignUp.text = '';
-        });
-        setState(() {});
+        int idUser = responseData["idUser"];
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ValidPage(
+              idUser: idUser,
+            ),
+          ),
+        );
       } else {
         print("Invalid credentials received, updating error message");
       }
@@ -339,3 +388,4 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
     }
   }
 }
+
