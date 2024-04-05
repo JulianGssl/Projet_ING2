@@ -172,62 +172,6 @@ def init_routes(app, mail,csrf,limiter):
         app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
 
-    def generate_keys():
-        # Générer une paire de clés RSA
-        privateKey = rsa.generate_private_key(
-            public_exponent=65537,  # Exposant public couramment utilisé
-            key_size=2048,          # Taille de la clé en bits
-            backend=default_backend()
-        )
-        # Obtenir la clé publique à partir de la clé privée
-        publicKey = privateKey.public_key()
-        # Sérialiser la clé publique au format PEM
-        publicKey_pem = publicKey.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        
-        privateKey_pem = privateKey.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-        ).decode()
-        
-        return publicKey_pem, privateKey_pem
-    
-    def derive_key(password, salt):
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-            backend=default_backend()
-        )
-        return kdf.derive(password.encode())
-    
-    def encrypt_private_key(private_key, password,salt):
-        key = derive_key(password, salt)
-        iv = os.urandom(16)
-        cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        encrypted_private_key = encryptor.update(private_key.encode()) + encryptor.finalize()
-        return encrypted_private_key
-    
-    def decrypt_private_key(encrypted_private_key_base64, salt, password):
-        encrypted_private_key = base64.b64decode(encrypted_private_key_base64)
-        # Dérivation de la clé de chiffrement à partir du mot de passe et du sel
-        key = derive_key(password, salt)
-        # Générer un vecteur d'initialisation (IV) aléatoire
-        iv = os.urandom(16)
-        # Créer un objet Cipher avec l'algorithme AES en mode CFB
-        cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-        # Créer un objet decryptor pour déchiffrer les données
-        decryptor = cipher.decryptor()
-        # Déchiffrer la clé privée
-        decrypted_private_key = decryptor.update(encrypted_private_key) + decryptor.finalize()
-        # Retourner la clé privée déchiffrée
-        return decrypted_private_key
-    
     def hashPassword(password, salt):
         # Ajouter le sel au mot de passe
         salted_password = password.encode() + salt.encode()
