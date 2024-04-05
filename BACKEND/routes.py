@@ -56,16 +56,15 @@ def init_routes(app, mail,csrf,limiter):
         user = User.query.filter_by(username=username).first()
         if user:
             if user.is_validate==True:
-                stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
+                stored_salt = user.salt #On converti la chaine de caractère en byte
                 stored_password_hash = user.password_hash
 
                 #on compare le hash du mdp rentré et le mdp hashé dans la bdd
                 hashed_password=hashPassword(password,stored_salt)
                 if(stored_password_hash==hashed_password):
 
-                    private_key=decrypt_private_key(user.private_key, stored_salt, password).hex()
                     # Si l'utilisateur est authentifié, créer un token JWT
-                    access_token = create_access_token(identity=user.idUser,additional_claims={"idUser" : user.idUser, "private_key" : private_key})
+                    access_token = create_access_token(identity=user.idUser,additional_claims={"idUser" : user.idUser, "public_key": user.public_key, "private_key_encrypted" : user.private_key, "salt": user.salt})
                     app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
 
                     return jsonify({'access_token': access_token}), 200
@@ -143,8 +142,10 @@ def init_routes(app, mail,csrf,limiter):
         username = req_data['username']
         password = req_data['password']
         email= req_data["email"]
-        private_key2=req_data["privateKeyBase64"]
-        public_key2=req_data["publicKeyBase64"]
+
+        private_key=req_data["privateKeyBase64"]
+        public_key=req_data["publicKeyBase64"]
+        salt=req_data["salt"]
         
         #Génération code de validation de compte:
         random_number = random.randint(0, 999999)
@@ -156,15 +157,11 @@ def init_routes(app, mail,csrf,limiter):
         requested_url = request.url
         
         #Salage et hachage du mdp
-        salt = os.urandom(32)
         hashed_password = hashPassword(password, salt)
-        public_key,private_key=generate_keys()
         
         private_key_secure=encrypt_private_key(private_key,password,salt)
-        # Conversion de la clé privée chiffrée en base64
-        private_key_base64 = base64.b64encode(private_key_secure).decode('utf-8')
         
-        new_user = User(username=username, email=email, valid_code=valid_code, password_hash=hashed_password, salt=salt.hex(), public_key=public_key, private_key=private_key_base64)
+        new_user = User(username=username, email=email, valid_code=valid_code, password_hash=hashed_password, salt=salt, public_key=public_key, private_key=private_key)
         
         db.session.add(new_user)
         db.session.commit()
@@ -235,7 +232,7 @@ def init_routes(app, mail,csrf,limiter):
     
     def hashPassword(password, salt):
         # Ajouter le sel au mot de passe
-        salted_password = password.encode() + salt
+        salted_password = password.encode() + salt.encode()
 
         # Hacher le mot de passe avec le sel en utilisant SHA-256
         hash_object = SHA256.new(data=salted_password)
