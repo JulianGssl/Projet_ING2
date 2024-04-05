@@ -430,7 +430,7 @@ def init_routes(app, mail,csrf,limiter):
             print("Error: "+str(e))
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/getmessages', methods=['GET'])
+    @app.route('/getmessages', methods=['POST'])
     @csrf.exempt
     def get_conversation_messages():
         print("/getmessages - Trying to get conversation messages..")
@@ -439,7 +439,9 @@ def init_routes(app, mail,csrf,limiter):
         http_method = request.method
         requested_url = request.url
         try:
-            conversation_id = request.args.get('conversationId')
+            req_data = request.get_json()
+            conversation_id = req_data['conversation_id']
+            id_sender= req_data["id_sender"]
             print("Conversation ID:", conversation_id)
 
             # Recherche des messages de la conversation dans la base de données
@@ -449,8 +451,9 @@ def init_routes(app, mail,csrf,limiter):
                 print("Messages found for conversation ID:", conversation_id)
                 #Mettre is_read à 1 pr chaque message
                 for message in conversation_messages:
-                    message.is_read = True
-                    db.session.commit()
+                    if(message.id_sender!=id_sender):
+                        message.is_read = True
+                        db.session.commit()
                 
                 # Préparation des données de réponse au format JSON
                 response_data = [{'id_conv': message.id_conv,
