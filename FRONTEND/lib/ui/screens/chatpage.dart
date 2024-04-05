@@ -90,8 +90,13 @@ Future<String> _fetchCSRFToken(String formRoute, int formId) async {
 
   Future<void> _fetchMessages(int conversationId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$url/getmessages?conversationId=$conversationId'),
+     final response = await http.post(
+        Uri.parse('$url/getmessages'),
+        body: jsonEncode({
+          'conversation_id': conversationId,
+          'id_sender': widget.currentUser.id,
+        }),
+        headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode == 200) {
         final List<dynamic> responseData = jsonDecode(response.body);
