@@ -7,14 +7,16 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import "profilpage.dart";
 
 import '../../models/url.dart';
+import '../../models/user.dart';
+import '../../models/constants.dart';
 
 
 class EditProfilePage extends StatefulWidget {
   final String sessionToken;
+  final User currentUser;
 
 
-
-  const EditProfilePage({super.key, required this.sessionToken});
+  const EditProfilePage({super.key, required this.sessionToken, required this.currentUser});
 
   @override
   _EditProfilePageState createState() => _EditProfilePageState();
@@ -87,8 +89,6 @@ Future<String> _fetchCSRFToken(String formRoute) async {
 }
 
 
-
-
   void _fetchGetProfile() async {
     try {
       final response = await http.get(
@@ -135,7 +135,7 @@ void _fetchEditProfile(String currentPassword) async {
     print(_csrfToken);
     if (response.statusCode == 200) {
       // Redirection vers ChatListPage
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfilePage(sessionToken: widget.sessionToken)));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfilePage(currentUser: widget.currentUser, sessionToken: widget.sessionToken)));
     } else if (response.statusCode == 404) {
       // Affichage d'un message d'erreur
       final data = jsonDecode(response.body);
@@ -148,15 +148,24 @@ void _fetchEditProfile(String currentPassword) async {
   }
 
   InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
+     return InputDecoration(
+      labelText: hint,
+      labelStyle: TextStyle(color: Colors.white70, fontFamily: fontLufga),
       filled: true,
-      fillColor: Colors.grey[200],
+      fillColor: Colors.white24,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10.0),
+        borderRadius: BorderRadius.circular(30.0),
         borderSide: BorderSide.none,
       ),
-      contentPadding: EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30.0),
+        borderSide: BorderSide(color: Colors.deepPurple.shade100),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30.0),
+        borderSide: BorderSide(color: Colors.deepPurple.shade700),
+      ),
+      contentPadding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
     );
   }
 
@@ -166,6 +175,10 @@ void _fetchEditProfile(String currentPassword) async {
       decoration: _inputDecoration(hint),
       obscureText: isPassword,
       keyboardType: isPassword ? TextInputType.text : TextInputType.emailAddress,
+      style: TextStyle(
+        color: Colors.white,
+        fontFamily: fontLufga
+      ),
     );
   }
 
@@ -175,13 +188,14 @@ void _fetchEditProfile(String currentPassword) async {
     context: context,
     builder: (context) {
       return AlertDialog(
+        backgroundColor: Colors.deepPurple.shade100, // Set light purple background
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Pour aligner le titre et le bouton de fermeture
+          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Align title and close button
           children: [
-            Text('Verify Your Password'),
+            Text('Verify Your Password', style: TextStyle(color: Colors.white, fontFamily: fontLufga),),
             IconButton(
-              icon: Icon(Icons.close), // Icône de croix pour fermer la pop-up
-              onPressed: () => Navigator.of(context).pop(), // Ferme la pop-up
+              icon: Icon(Icons.close, color: Colors.white), // Cross icon to close the popup
+              onPressed: () => Navigator.of(context).pop(), // Close the popup
             ),
           ],
         ),
@@ -213,47 +227,70 @@ void _fetchEditProfile(String currentPassword) async {
 
   @override
   Widget build(BuildContext context) {
-
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator()); // Affichage d'un indicateur de chargement pendant la récupération des données
+      return Center(child: CircularProgressIndicator()); // Displaying a loading indicator while fetching data
     }
-
+ 
     if (_errorMessage != null) {
-      return Center(child: Text(_errorMessage!)); // Gestion des erreurs
+      return Center(child: Text(_errorMessage!)); // Error handling
     }
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text('Edit Profile', style: TextStyle(color: Colors.black)),
-      ),
-      body: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-        child: Column(
-          children: [
-            _buildTextField(_nameController..text = _userData['username'], 'Your name'),
-            SizedBox(height: 16.0),
-            _buildTextField(_emailController..text = _userData['email'], 'Email'),
-            SizedBox(height: 16.0),
-            _buildTextField(_passwordController, 'Password', isPassword: true),
-            SizedBox(height: 24.0),
-            ElevatedButton(
-              onPressed: _showPasswordDialog,
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white, backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-              ),
-              child: Text('Modifier'),
-            ),
+ 
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF1C0F45), // Dark purple
+            Color(0xFF6632C6), // Light purple
           ],
+        ),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text('Edit Profile', style: TextStyle(color: Colors.white, fontFamily: fontLufga)),
+          iconTheme: IconThemeData(color: Colors.white), // Set the color of the back arrow
+        ),
+ 
+        backgroundColor: Colors.transparent, // Important to see the gradient
+        body: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+          child: Column(
+            children: [
+              _buildTextField(_nameController..text = _userData['username'], 'Your name'),
+              SizedBox(height: 16.0),
+              _buildTextField(_emailController..text = _userData['email'], 'Email'),
+              SizedBox(height: 16.0),
+              _buildTextField(_passwordController, 'Password', isPassword: true),
+              SizedBox(height: 24.0),
+              ElevatedButton(
+                onPressed: _showPasswordDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple, // Set the background color to deep purple
+                  foregroundColor: Colors.white, // Set the text color to white
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0), // Rounded corners
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0), // Adjust the padding
+                  elevation: 5.0, // Add elevation for shadow effect
+                  shadowColor: Colors.black54, // Set the shadow color
+                ),
+                child: Text(
+                  'Modifier',
+                  style: TextStyle(fontFamily: fontLufga), // Set the font family to Lufga
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
   }
+ 
 }
+ 
+
 
