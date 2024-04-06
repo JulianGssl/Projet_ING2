@@ -326,7 +326,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   }
 
   bool verifPassword(String password) {
-    if (password.length < 12) {
+    if (password.length < 8) {
       return false;
     }
     final RegExp majusculeRegex = RegExp(r'[A-Z]');
@@ -383,7 +383,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       }
     } else {
       _errorMessage =
-          'Please enter a password of at least 12 characters, with at least one number, one uppercase letter and one special character';
+          'Please enter a password of at least 8 characters, with at least one number, one uppercase letter and one special character';
       setState(() {});
     }
   }
