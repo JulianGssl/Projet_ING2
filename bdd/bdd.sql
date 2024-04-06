@@ -135,7 +135,7 @@ SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
---mdp = 123Test!
+-- mdp = 123Test!
 INSERT INTO user (idUser, username, email, is_validate, valid_code, password_hash, salt, public_key, private_key) VALUES
 (1,'Bob','bob.bob@gmail.com',	1,'023617',	'5fadd9e9104d9b253b9cfe7cf472e265d7d9967957feb04c97166bb9e555b812','woPPMsVNslJ9euh40y2WpcZ4GEVBdEj3ky/vDmPDpVM=','1/8uzd6LRVME7D6OS1aSvP1K+bU2YIuFHRtqD++hXAg=','bui2qKzBuUf0g9qtkaFIxCXJF7+oMCYww4PpYxPZ6etWEwxYxEERrcZrhySnL4eA'),
 (2,'Alice','alice.alice@gmail.com',1,'862168','3a69837b4e63087ef3d04297bfe3a9de6f3f70ae00ac851b965f1fac764b7865','cBm2hSDL+NglXxwtgsSdo+ESxT24dHYuDObK2WJuz1Y=','QR3WTQgOjrZoSuTkXXeTQ6YZEv7MlIJUlAskTdB0tzI=','iKaV6juMwRUIpA6ymfcN5t736taY6/hNOMu9PJIwrGyMWEyCsUAt2RSuiV+RW+dY');
