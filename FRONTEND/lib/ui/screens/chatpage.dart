@@ -223,7 +223,12 @@ Future<String> _fetchCSRFToken(String formRoute) async {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+           onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ChatListPage(sessionToken: widget.sessionToken, currentUser: widget.currentUser)),
+            );
+          },
         ),
         backgroundColor: Colors.white,
         title: Row(
