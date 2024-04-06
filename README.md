@@ -1,6 +1,9 @@
-# Application de Messagerie Sécurisée avec Cryptographie Avancée: Cipher
+# Application de Messagerie Sécurisée avec Cryptographie Avancée: Whisper
 
 <br><br>
+
+![](CLIENT/lib/assets/images/logo.png)
+
 
 <ins> Problème </ins> 
 $${\color{red}Flask \ development \ web \ server \ does \ not \ have\ native\ support\ for\ websocket.\ Switching\ to\ a\ production\ server\ this\ problem\ will\ not\ occur.}$$
