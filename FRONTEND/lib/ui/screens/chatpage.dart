@@ -15,12 +15,14 @@ class ChatPage extends StatefulWidget {
   final String convName;
   final String sessionToken;
   final User currentUser;
+  final String realConvName;
 
   const ChatPage({
     required this.currentUser,
     required this.convId,
     required this.convName,
     required this.sessionToken,
+    required this.realConvName
   });
   
   @override
@@ -257,7 +259,7 @@ Future<String> _fetchCSRFToken(String formRoute) async {
               ),
               SizedBox(width: 10),
               Text(
-                widget.convName,
+                widget.realConvName,
                 style: TextStyle(color: Colors.white), // Texte de l'AppBar en blanc
               ),
             ],
