@@ -119,7 +119,7 @@ Future<String> _fetchCSRFToken(String formRoute) async {
     print("/chatpage.dart - _addMessage called");
 
         Map<String, dynamic> messageData = {
-        'id_conv': 1, // Remplacez 1 par l'ID de la conversation appropriée
+        'id_conv': widget.convId, // Remplacez 1 par l'ID de la conversation appropriée
         'recipient': widget.convName,
         'sender_name': widget.currentUser.username,
         'id_sender': widget.currentUser.id,
