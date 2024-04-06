@@ -280,7 +280,7 @@ def init_routes(app, mail,csrf,limiter):
         return jsonify(message="Token revoked"), 200
     
     @app.route("/recent_messages", methods=["GET"])
-    @csrf.exempt
+    @csrf.exempt  # Assure-toi que csrf.exempt est correctement importé
     @jwt_required()
     def recent_messages():
         id_user = get_jwt_identity()
@@ -293,13 +293,22 @@ def init_routes(app, mail,csrf,limiter):
         .filter(ConvMember.idUser == id_user)\
         .group_by(Message.id_conv).subquery('latest_message')
 
-        # Requête principale pour obtenir les détails du dernier message de chaque conversation
-        last_messages = db.session.query(Message, Conv.name, Conv.type)\
+        # Requête principale pour obtenir les détails du dernier message de chaque conversation, incluant les membres de la conversation
+        last_messages = db.session.query(Message, Conv.name, Conv.type, ConvMember.idUser)\
             .join(subq, Message.idMessage == subq.c.max_id)\
             .join(Conv, Conv.idConv == Message.id_conv)\
+            .join(ConvMember, Conv.idConv == ConvMember.idConv)\
+            .filter(ConvMember.idUser != id_user)\
             .all()
 
-        # Formatage des résultats pour la réponse JSON
+        # Fonction pour obtenir le nom de l'autre membre dans une conversation privée
+        def get_real_conv_name(conv_id, conv_type, other_member_id):
+            if conv_type == "private":
+                other_member = User.query.get(other_member_id)
+                return other_member.username if other_member else None
+            return None
+
+        # Formatage des résultats pour la réponse JSON, incluant real_conv_name
         results = [
             {
                 'conv_id': message[0].id_conv,
@@ -308,11 +317,10 @@ def init_routes(app, mail,csrf,limiter):
                 'last_message_id': message[0].idMessage,
                 'last_message_content': message[0].content,
                 'last_message_date': message[0].date.isoformat(),
-                'last_message_sender_id': message[0].id_sender
+                'last_message_sender_id': message[0].id_sender,
+                'real_conv_name': get_real_conv_name(message[0].id_conv, message[2], message[3])
             } for message in last_messages
         ]
-
-        print(results)
 
         return jsonify({'recent_messages': results}), 200
     
