@@ -138,5 +138,5 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 -- mdp = 123Test!
 INSERT INTO user (idUser, username, email, is_validate, valid_code, password_hash, salt, public_key, private_key) VALUES
-(1,'Bob','bob.bob@gmail.com',	1,'023617',	'5fadd9e9104d9b253b9cfe7cf472e265d7d9967957feb04c97166bb9e555b812','woPPMsVNslJ9euh40y2WpcZ4GEVBdEj3ky/vDmPDpVM=','1/8uzd6LRVME7D6OS1aSvP1K+bU2YIuFHRtqD++hXAg=','bui2qKzBuUf0g9qtkaFIxCXJF7+oMCYww4PpYxPZ6etWEwxYxEERrcZrhySnL4eA'),
-(2,'Alice','alice.alice@gmail.com',1,'862168','3a69837b4e63087ef3d04297bfe3a9de6f3f70ae00ac851b965f1fac764b7865','cBm2hSDL+NglXxwtgsSdo+ESxT24dHYuDObK2WJuz1Y=','QR3WTQgOjrZoSuTkXXeTQ6YZEv7MlIJUlAskTdB0tzI=','iKaV6juMwRUIpA6ymfcN5t736taY6/hNOMu9PJIwrGyMWEyCsUAt2RSuiV+RW+dY');
+(1,'Bob','bob.bob@gmail.com',	1,'023617',	'8a62b1ec6b2e22fa3f09eca61272f561d8b60918d7c3ee82da0aa3ebdd0a2784','lW5bI3Dg10MLv4JhM5qje/n/6FEtrrhHUcyt/EVRawg=','3161OR9lA7C3qPxvbDpsIQDF3HcFWQQT1bBPUa0nMn0=','xeRrpUY2pqPdIAsvxVbOTa2JlCcYdy8tJseTGRNY93H71lAjlG/vuIaw3gbtnYYG'),
+(2,'Alice','alice.alice@gmail.com',1,'862168','d9186344a91424a27db1c2fcf596633d6364fc4b510252b54a0b7e7a55a3602e','S5B/2csZatZZVOgxrQFFyZ29+3q6XXe9W0nbY0HdSKs=','iI+Y6p0QR5WJQMY2alicYBNX6a3RHorQDqP5QCKxBWA=','T+B1AmH2W31QTN738qVreBrmqCh7C0R6DhMKcRUZI9DpbyJMqvytLxJJ91+9VeRb');
