@@ -58,6 +58,30 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+    assets:
+        - assets/images/
+    fonts:
+      - family: Lufga
+        fonts:
+          - asset: assets/fonts/LufgaBlack.ttf
+          - asset: assets/fonts/LufgaBlackItalic.ttf
+          - asset: assets/fonts/LufgaBold.ttf
+          - asset: assets/fonts/LufgaBoldItalic.ttf
+          - asset: assets/fonts/LufgaExtraBold.ttf
+          - asset: assets/fonts/LufgaExtraBoldItalic.ttf
+          - asset: assets/fonts/LufgaExtraLight.ttf
+          - asset: assets/fonts/LufgaExtraLightItalic.ttf
+          - asset: assets/fonts/LufgaItalic.ttf
+          - asset: assets/fonts/LufgaLight.ttf
+          - asset: assets/fonts/LufgaLightItalic.ttf
+          - asset: assets/fonts/LufgaMedium.ttf
+          - asset: assets/fonts/LufgaMediumItalic.ttf
+          - asset: assets/fonts/LufgaRegular.ttf
+          - asset: assets/fonts/LufgaSemiBold.ttf
+          - asset: assets/fonts/LufgaSemiBoldItalic.ttf
+          - asset: assets/fonts/LufgaThin.ttf
+          - asset: assets/fonts/LufgaThinItalic.ttf
+
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
