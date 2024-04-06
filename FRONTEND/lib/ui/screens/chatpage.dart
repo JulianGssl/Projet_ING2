@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-
+ 
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/url.dart';
 import '../../models/message.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-
+ 
+import 'chatlistpage.dart';
+ 
 class ChatPage extends StatefulWidget {
   final int convId;
   final String convName;
@@ -216,60 +218,86 @@ Future<String> _fetchCSRFToken(String formRoute) async {
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom()); 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => ChatListPage(sessionToken: widget.sessionToken, currentUser: widget.currentUser)),
-            );
-          },
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+ 
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1C0F45), Color(0xFF6632C6)],
         ),
-        backgroundColor: Colors.white,
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.grey, // Assurez-vous que le chemin de l'image est correct
-              radius: 16,
-            ),
-            SizedBox(width: 10),
-            Text(
-              widget.convName,
-              style: TextStyle(color: Colors.black),
-            ),
-          ],
-        ),
-        elevation: 0,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              reverse: false,
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                return _buildMessage(message);
-              },
+      child: Scaffold(
+        backgroundColor: Colors.transparent, // Important pour voir le gradient
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ChatListPage(sessionToken: widget.sessionToken, currentUser: widget.currentUser)),
+              );
+            },
+          ),
+          backgroundColor: Colors.transparent, // AppBar transparente pour voir le gradient
+          title: Row(
+            children: [
+              CircleAvatar(
+                radius: 25, // Ajustez le rayon pour correspondre à la taille souhaitée
+                backgroundColor: Colors.transparent,
+                child: Icon(
+                  Icons.account_circle,
+                  size: 50, // Ajustez la taille pour remplir le CircleAvatar
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 10),
+              Text(
+                widget.convName,
+                style: TextStyle(color: Colors.white), // Texte de l'AppBar en blanc
+              ),
+            ],
+          ),
+          elevation: 0,
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(4.0),
+            child: Divider(
+              color: Colors.white24, // La couleur de la barre séparatrice
+              height: 1.0, // La hauteur de la barre séparatrice
+              thickness: 1.0, // L'épaisseur de la barre séparatrice
             ),
           ),
-          _buildMessageInput(),
-        ],
+        ),
+        body: Column(
+          children: [
+            SizedBox(height: 24), // Espace entre la AppBar et le premier message
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                reverse: false,
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final message = _messages[index];
+                  return _buildMessage(message); // Votre méthode pour construire chaque message
+                },
+              ),
+            ),
+            _buildMessageInput(), // Votre méthode pour l'input de message
+          ],
+        ),
       ),
     );
   }
-
+ 
   Widget _buildMessage(Message message) {
     final bool isUserMessage = message.idSender == widget.currentUser.id;
-    final messageColor = isUserMessage ? Colors.blue : Colors.grey.shade300;
-    final textColor = isUserMessage ? Colors.white : Colors.black87;
-
+    final messageColor = isUserMessage ?Color.fromARGB(255, 119, 67, 215) : Color.fromARGB(255, 34, 18, 62);
+    final textColor = isUserMessage ? Colors.white : Colors.white;
+ 
     return Align(
       alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -302,31 +330,45 @@ Future<String> _fetchCSRFToken(String formRoute) async {
       ),
     );
   }
-
+ 
   Widget _buildMessageInput() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      color: Colors.white,
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: InputDecoration.collapsed(
-                hintText: 'Type something...',
+  return Column(
+    children: [
+      Divider(
+        height: 1,
+        thickness: 1,
+        color: Colors.white30, // Couleur de la barre pour contraster avec le fond
+      ),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _textController,
+                decoration: InputDecoration(
+                  hintText: 'Type something...',
+                  hintStyle: TextStyle(color: Colors.white60), // Texte indicatif en gris clair/blanc
+                  border: InputBorder.none, // Aucune bordure autour du TextField
+                  contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                ),
+                style: TextStyle(color: Colors.white), // Texte en blanc pour la saisie
               ),
             ),
-          ),
-          IconButton(
-            icon: Icon(Icons.send, color: Colors.blue),
-            onPressed: () {
-              if (_textController.text.trim().isNotEmpty) {
-                _addMessage(_textController.text.trim());
-              }
-            },
-          ),
-        ],
+            IconButton(
+              icon: Icon(Icons.send, color: Colors.white), // Icône d'envoi en blanc
+              onPressed: () {
+                if (_textController.text.trim().isNotEmpty) {
+                  _addMessage(_textController.text.trim());
+                  _textController.clear(); // Nettoyer le champ après l'envoi
+                }
+              },
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ],
+  );
+}
+ 
 }
