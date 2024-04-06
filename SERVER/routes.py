@@ -644,6 +644,34 @@ def init_routes(app, mail,csrf,limiter):
         app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify({'csrf_token': csrf_token}), 200
 
+    @app.route('/get_public_key', methods=['GET'])
+    @csrf.exempt
+    def get_public_key():
+        # Récupérer les données envoyées par le frontend
+        try:
+            conv_id = request.args.get('conv_id')
+            current_user_id = request.args.get('current_user_id')
+            
+            #other_user_id = db.session.query(User).join(ConvMember).filter(and_(ConvMember.idConv == conv_id, User.idUser != current_user_id)).first()
+            #other_user_id = db.session.query(User.idUser).join(ConvMember).filter(and_(ConvMember.idConv == conv_id, User.idUser != current_user_id)).first()
+            other_user_id = db.session.query(User.idUser).join(ConvMember).filter(and_(ConvMember.idConv == conv_id, User.idUser != current_user_id)).scalar()
+
+            if other_user_id:
+                print("Other user ID:", other_user_id)
+                public_key = db.session.query(User.public_key).filter(User.idUser == other_user_id).scalar()
+
+                if public_key:
+                    print("Public key:", public_key)
+                    return jsonify({'public_key': public_key}), 200
+                else:
+                    return jsonify({'error': f'Public key not found for user with ID {other_user_id}'}), 402
+
+            else:
+                return jsonify({'error': 'Other user not found in the conversation'}), 404
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
             
 ######################################################################################################
 
