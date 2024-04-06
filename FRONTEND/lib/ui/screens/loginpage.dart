@@ -379,7 +379,10 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
           ),
         );
       } else {
-        print("Invalid credentials received, updating error message");
+        var responseData = json.decode(response.body);
+        String message = responseData["message"];
+        _errorMessage = message;
+        setState(() {}); 
       }
     } else {
       _errorMessage =
