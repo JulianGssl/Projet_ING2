@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_github/ui/screens/loginpage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'chatlistpage.dart';
@@ -11,7 +10,7 @@ import '../../models/constants.dart';
 
 
 import 'editprofilpage.dart';
-
+import 'loginpage.dart';
 
 class ProfilePage extends StatefulWidget {
   final String sessionToken;
