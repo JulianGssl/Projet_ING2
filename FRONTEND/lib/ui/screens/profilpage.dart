@@ -8,6 +8,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../models/url.dart';
 
 import 'editprofilpage.dart';
+import 'loginpage.dart';
 
 
 class ProfilePage extends StatefulWidget {
@@ -63,6 +64,16 @@ class _ProfilePageState extends State<ProfilePage> {
         _isLoading = false;
         _errorMessage = 'An error occurred: $e';
       });
+    }
+  }
+
+   void logout() async {
+    var response = await http.post(Uri.parse('$url/logout'),headers: {'Authorization': 'Bearer ${widget.sessionToken}'});
+    if (response.statusCode == 200) {
+      Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => AuthenticationScreen()),
+          (route) => false);
     }
   }
 
@@ -129,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
             padding: EdgeInsets.symmetric(horizontal: 32),
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Add logout logic
+                logout();
               },
               child: Text('Log Out'),
               style: ElevatedButton.styleFrom(
