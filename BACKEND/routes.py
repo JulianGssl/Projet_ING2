@@ -368,7 +368,7 @@ def init_routes(app, mail,csrf,limiter):
         user = User.query.filter_by(idUser=id_user).first()
 
 
-        stored_salt = bytes.fromhex(user.salt) #On converti la chaine de caractère en byte
+        stored_salt = user.salt
         stored_password_hash = user.password_hash
         #on compare le hash du mdp rentré et le mdp hashé dans la bdd
         hashed_password=hashPassword(current_password,stored_salt)
