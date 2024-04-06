@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS `app_db`.`user` (
   `public_key` VARCHAR(4096) NULL DEFAULT NULL,
   `private_key` VARCHAR(4096) NULL DEFAULT NULL,
   PRIMARY KEY (`idUser`),
+  UNIQUE(`username`),
   UNIQUE (`email`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
