@@ -2,7 +2,7 @@
 
 <br><br>
 
-![](CLIENT/lib/assets/images/logo.png)
+![](whisper_logo.jpg)
 
 
 <ins> Problème </ins> 
