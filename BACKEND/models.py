@@ -49,6 +49,7 @@ class Message(db.Model):
     sender = db.relationship('User', foreign_keys=[id_sender], backref=db.backref('sent_messages', lazy=True))
 
 class TokenBlocklist(db.Model):
+    __tablename__ = 'tokenblocklist'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     jti = db.Column(db.String(36), nullable=False, unique=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
