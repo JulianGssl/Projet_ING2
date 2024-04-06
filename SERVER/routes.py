@@ -308,7 +308,8 @@ def init_routes(app, mail,csrf,limiter):
                 'last_message_id': message[0].idMessage,
                 'last_message_content': message[0].content,
                 'last_message_date': message[0].date.isoformat(),
-                'last_message_sender_id': message[0].id_sender
+                'last_message_sender_id': message[0].id_sender,
+                'real_conv_name': get_real_conv_name(message[0].id_conv, message[2], message[3])
             } for message in last_messages
         ]
 
