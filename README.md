@@ -2,8 +2,9 @@
 
 <br><br>
 
-![](whisper_logo.jpg)
-
+<p align="center">
+  <img src="whisper_logo.jpg"/>
+</p>
 
 <ins> Problème </ins> 
 $${\color{red}Flask \ development \ web \ server \ does \ not \ have\ native\ support\ for\ websocket.\ Switching\ to\ a\ production\ server\ this\ problem\ will\ not\ occur.}$$
