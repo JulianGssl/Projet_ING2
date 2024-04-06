@@ -42,7 +42,7 @@ class Message(db.Model):
     idMessage = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_conv = db.Column(db.Integer, db.ForeignKey('conv.idConv'), nullable=True)
     id_sender = db.Column(db.Integer, db.ForeignKey('user.idUser'), nullable=True)
-    content = db.Column(db.String(300), nullable=True)
+    content = db.Column(db.String(4000), nullable=True)
     date = db.Column(db.DateTime, nullable=True,default=datetime.now)
     is_read = db.Column(db.Boolean, nullable=True, default=False)
     conv = db.relationship('Conv', foreign_keys=[id_conv], backref=db.backref('messages', lazy=True))
