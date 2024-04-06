@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
-import 'ui/screens/loginpage.dart';
+import 'ui/screens/loadinghomepage';
 
 // Créez un objet SecurityContext
 SecurityContext securityContext = SecurityContext();
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: AuthenticationScreen(), // CALL LOGIN PAGE -> ui/screens/loginpage.dart
+      home: LoadingHomePage(), // CALL LOGIN PAGE -> ui/screens/loginpage.dart
     );
   }
 }
