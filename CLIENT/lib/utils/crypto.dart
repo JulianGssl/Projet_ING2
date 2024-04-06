@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:encrypt/encrypt.dart';
 import 'key_generation.dart' as KG;
-import 'salt_iv.dart' as SaltIv;
+
+final aesGcm = AesGcm.with256bits();
+
 
 /// Chiffre la clé privée avec un mot de passe donné, un sel et un vecteur d'initialisation (IV) 
 /// en utilisant l'algorithme AES avec le mode de chiffrement CFB64.
@@ -77,6 +79,16 @@ Future<KeyPair> keyPairFromBase64(String privateKeyBase64, String publicKeyBase6
   return SimpleKeyPairData(await privateKey.extractBytes(), publicKey: publicKey, type: KeyPairType.x25519);
 }
 
+/// Génère une paire de clés à partir de clés SecretKey et SimplePublicKey.
+///
+/// [privateKey] : La clé privée au format SecretKey.
+/// [publicKey] : La clé publique au format SimplePublicKey.
+///
+/// Retourne une Future résolvant une paire de clés.
+Future<KeyPair> keyPairFromSecretKeyAndSimplePublicKey(SecretKey privateKey, SimplePublicKey publicKey) async {
+  return SimpleKeyPairData(await privateKey.extractBytes(), publicKey: publicKey, type: KeyPairType.x25519);
+}
+
 
 /// Crée une clé publique à partir d'une clé encodée en base64.
 ///
@@ -107,7 +119,7 @@ Future<SecretKey> secretKeyFromBase64(String keyBase64) async {
 /// [publicKey] : La clé publique distante avec laquelle calculer la clé secrète partagée.
 ///
 /// Retourne une Future résolvant une clé secrète partagée [SecretKey].
-Future<SecretKey> calculateSharedSecret(KeyPair keyPair, PublicKey publicKey) async {
+Future<SecretKey> calculateSharedSecretKey(KeyPair keyPair, PublicKey publicKey) async {
   final algorithm = X25519();
   final sharedSecretKey = await algorithm.sharedSecretKey(
     keyPair: keyPair,
@@ -116,33 +128,24 @@ Future<SecretKey> calculateSharedSecret(KeyPair keyPair, PublicKey publicKey) as
   return sharedSecretKey;
 }
 
-/// Chiffre un message avec une clé secrète donnée en utilisant l'algorithme AES avec le mode de chiffrement GCM.
-///
-/// [message] : Le message à chiffrer.
-/// [secretKey] : La clé secrète utilisée pour le chiffrement.
-///
-/// Retourne une chaîne encodée en base64 contenant le message chiffré.
-Future<SecretBox> encryptMessage(String message, SecretKey secretKey) {
-  final algorithm = AesGcm.with256bits();
-  final nonce = algorithm.newNonce();
-  final secretBox = algorithm.encrypt(
-    utf8.encode(message),
-    secretKey: secretKey,
-    nonce: nonce,
-  );
-  return secretBox;
+
+Future<String> encryptString(String plaintext, SecretKey secretKey) async {
+  final plainBytes = utf8.encode(plaintext); // Convertir la chaîne de caractères en une liste d'octets UTF-8
+  final secretBox = await aesGcm.encrypt(plainBytes, secretKey: secretKey); // Chiffrer la liste d'octets avec la clé secrète
+  return base64.encode(secretBox.concatenation()); // Renvoyer la représentation base64 de la SecretBox
 }
 
-/// Déchiffre un message chiffré avec une clé secrète donnée en utilisant l'algorithme AES avec le mode de chiffrement GCM.
-///
-/// [encryptedMessageBase64] : Le message chiffré encodé en base64.
-/// [secretKey] : La clé secrète utilisée pour le déchiffrement.
-///
-/// Retourne le message déchiffré sous forme de chaîne.
-String decryptMessage(SecretBox encryptedMessage, SecretKey secretKey) {
-  final algorithm = AesGcm.with256bits();
-  final decryptedMessage = algorithm.decrypt(encryptedMessage, secretKey: secretKey);
-  return utf8.decode(decryptedMessage as List<int>);
+// Fonction pour déchiffrer une chaîne de caractères chiffrée
+Future<String> decryptString(String encryptedString, SecretKey secretKey) async {
+  final encryptedBytes = base64.decode(encryptedString); // Convertir la chaîne de caractères chiffrée depuis base64 en une liste d'octets
+  final newSecretBox = SecretBox.fromConcatenation( // Reconstituer la SecretBox à partir de la représentation binaire
+    encryptedBytes,
+    nonceLength: aesGcm.nonceLength,
+    macLength: aesGcm.macAlgorithm.macLength,
+    copy: true, // Ne pas copier les octets à moins que cela soit nécessaire
+  );
+  final clearBytes = await aesGcm.decrypt(newSecretBox, secretKey: secretKey); // Déchiffrer la SecretBox reconstituée avec la même clé secrète
+  return utf8.decode(clearBytes);  // Convertir la liste d'octets déchiffrée en une chaîne de caractères UTF-8
 }
 
 
@@ -152,8 +155,8 @@ void main() async {
 
     // Définir le sel et le vecteur d'initialisation (IV)
     // On les récupère depuis le fichier salt_iv.dart
-    final salt = base64.decode(SaltIv.salt);
-    final iv = base64.decode(SaltIv.iv);
+    final salt = base64.decode("URA2/4uYg2OIlct6Pq9/ya4snpkpVMYmtXHHnsW1Qsc=");
+    final iv = base64.decode("9zTTNe2bBYMNzKFGLxjd89UC1Nk2ZoGMFSK0FocJZI0=");
 
     print('Salt: $salt');
     print('IV: $iv');
@@ -201,7 +204,7 @@ void main() async {
 
     print("\n ----- Shared secret key calculation ----- ");
     // Calculer la clé secrète partagée
-    final sharedSecretKey = await calculateSharedSecret(keyPair, publicKey);
+    final sharedSecretKey = await calculateSharedSecretKey(keyPair, publicKey);
     print("   Shared Secret Key : ${base64.encode(await sharedSecretKey.extractBytes())}"); // Afficher la clé secrète partagée en base64
 
 
@@ -247,8 +250,8 @@ void main() async {
     final privateKeyUser2 = await secretKeyFromBase64(keysUser2['privateKeyBase64']!);
 
     // Calculer la clé secrète partagée entre les deux utilisateurs
-    final sharedSecretKeyUser1 = await calculateSharedSecret(SimpleKeyPairData(await privateKeyUser1.extractBytes(), publicKey: publicKeyUser1, type: KeyPairType.x25519), publicKeyUser2);
-    final sharedSecretKeyUser2 = await calculateSharedSecret(SimpleKeyPairData(await privateKeyUser2.extractBytes(), publicKey: publicKeyUser2, type: KeyPairType.x25519), publicKeyUser1);
+    final sharedSecretKeyUser1 = await calculateSharedSecretKey(SimpleKeyPairData(await privateKeyUser1.extractBytes(), publicKey: publicKeyUser1, type: KeyPairType.x25519), publicKeyUser2);
+    final sharedSecretKeyUser2 = await calculateSharedSecretKey(SimpleKeyPairData(await privateKeyUser2.extractBytes(), publicKey: publicKeyUser2, type: KeyPairType.x25519), publicKeyUser1);
 
     // Message à chiffrer
     const messageSimulation = 'Bonjour, j\'espère que vous allez bien.';
@@ -270,6 +273,26 @@ void main() async {
 
     // Afficher le message déchiffré par l'utilisateur 2
     print('Message déchiffré par l\'utilisateur 2 : ${utf8.decode(decryptedMessage)}');
+
+
+    print("-----------------------------------------------------------");
+
+    final aesGcm = AesGcm.with256bits();
+    final secretKey = await aesGcm.newSecretKey();
+
+    // Message à chiffrer
+    final plaintext = 'Hello, world!';
+
+    // Chiffrer le message
+    final encryptedBytes = await encryptString(plaintext, secretKey);
+    print('Encrypted: $encryptedBytes');
+
+    // Déchiffrer le message chiffré
+    final decryptedText = await decryptString(encryptedBytes, secretKey);
+    print('Decrypted: $decryptedText');
+
+
+
 
   } catch (e) {
     print(e); // Afficher les erreurs

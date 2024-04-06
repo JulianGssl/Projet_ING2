@@ -1,3 +1,4 @@
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
@@ -5,13 +6,14 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../models/user.dart';
 import '../../models/url.dart';
+import '../../models/constants.dart';
+
 import 'package:jwt_decode/jwt_decode.dart';
 
 import 'chatlistpage.dart';
-import 'validationpage.dart';
+import 'validitionpage.dart';
 import '../../utils/key_generation.dart';
 
-import '../../utils/key_generation.dart';
 import '../../utils/crypto.dart';
 
 
@@ -19,16 +21,38 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Secure Chat',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.deepPurple,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30.0),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white24,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepPurple,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.0),
+            ),
+          ),
+        ),
+      ),
       home: AuthenticationScreen(),
     );
   }
 }
-
+ 
 class AuthenticationScreen extends StatefulWidget {
   @override
   _AuthenticationScreenState createState() => _AuthenticationScreenState();
 }
-
+ 
 class _AuthenticationScreenState extends State<AuthenticationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -38,10 +62,10 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   final TextEditingController _usernameController = TextEditingController();
   String _errorMessage = '';
   String _successSignUp = '';
-
+ 
   IO.Socket? socket;
   int nbLoginTry = 0;
-
+ 
   @override
   void dispose() {
     _nameController.dispose();
@@ -50,28 +74,29 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
     _passwordControllerSignUp.dispose();
     super.dispose();
   }
-
+ 
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: TextStyle(color: Colors.white70, fontFamily: fontLufga),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Colors.white24,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30.0),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30.0),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: Colors.deepPurple.shade100),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30.0),
-        borderSide: BorderSide(color: Colors.blue),
+        borderSide: BorderSide(color: Colors.deepPurple.shade700),
       ),
       contentPadding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
     );
   }
-
+ 
   Widget _buildTextField(
     TextEditingController controller,
     String label, {
@@ -83,151 +108,194 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       decoration: _inputDecoration(label),
       obscureText: isPassword,
       keyboardType: keyboardType,
+      style: TextStyle(color: Colors.white, fontFamily: fontLufga),
     );
   }
-
-  Widget _buildLoginButton(String text) {
-    return Column(
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            _handleLoginButtonPressed();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30.0),
-            ),
-            padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
+ 
+ Widget _buildLoginButton(String text) {
+   return Column(
+    children: [
+      ElevatedButton(
+        onPressed: () {
+          _handleLoginButtonPressed();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.deepPurple,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30.0),
           ),
-          child: Text(text),
+          padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
+          elevation: 5.0, // L'élévation donne l'effet d'ombre au bouton
+          shadowColor: Colors.black54, // Couleur de l'ombre
         ),
-        if (nbLoginTry > 3)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              'Too many connection attempts. Please try again in 30 seconds.',
-              style: TextStyle(color: Colors.red),
-            ),
+        child: Text(text, style: TextStyle(fontFamily: fontLufga)),
+      ),
+      if (nbLoginTry > 3)
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            'Too many connection attempts. Please try again in 30 seconds.',
+            style: TextStyle(color: Colors.amber, fontFamily: fontLufga), // Adjusted to a warning color that stands out
           ),
-        if (_errorMessage.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              _errorMessage,
-              style: TextStyle(color: Colors.red),
-            ),
+        ),
+      if (_errorMessage.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            _errorMessage,
+            style: TextStyle(color: Colors.red, fontFamily: fontLufga),
           ),
-      ],
-    );
-  }
-
+        ),
+    ],
+  );
+}
+ 
+ 
   Widget _buildSignUpButton(String text) {
     return Column(
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            _handleSignUpButtonPressed();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30.0),
-            ),
-            padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
+    children: [
+      ElevatedButton(
+        onPressed: () {
+          _handleSignUpButtonPressed();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.deepPurple,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30.0),
           ),
-          child: Text(text),
+          padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 80.0),
+          elevation: 5.0,
+          shadowColor: Colors.black54, // Couleur de l'ombre
         ),
+        child: Text(text, style: TextStyle(fontFamily: fontLufga)),
+      ),
         if (_errorMessage.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
               _errorMessage,
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: Colors.red, fontFamily: fontLufga),
             ),
           ),
         if (_successSignUp.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              _errorMessage,
-              style: TextStyle(color: Colors.green),
+              _successSignUp, // Should be _successSignUp instead of _errorMessage
+              style: TextStyle(color: Colors.green, fontFamily: fontLufga),
             ),
           ),
       ],
     );
   }
-
+ 
+ 
+ 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        centerTitle: true,
-        title: Text(
-          'Message Application',
-          style: TextStyle(color: Colors.black),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.center,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1C0F45),
+            Color(0xFF6632C6),
+          ],
         ),
       ),
-      body: DefaultTabController(
-        length: 2,
-        child: Column(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
           children: [
-            const SizedBox(height: 20),
-            const Text(
-              'Authentication',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24.0,
-                fontWeight: FontWeight.bold,
+            Column(
+              children: [
+                AppBar(
+                  systemOverlayStyle: SystemUiOverlayStyle.light,
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  centerTitle: true,
+                 
+                ),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image.asset('lib/assets/images/logo.png', width: 300),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            TabBar(
-              tabs: const [
-                Tab(text: 'Create Account'),
-                Tab(text: 'Log In'),
+                Expanded(
+                  child: DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        Theme(
+                          data: Theme.of(context).copyWith(
+                            tabBarTheme: TabBarTheme(
+                              // Définir pour les onglets sélectionnés
+                              labelStyle: TextStyle(
+                                fontFamily: fontLufga,
+                                fontSize: 24  , // Augmente la taille du texte pour les onglets sélectionnés
+                              ),
+                              // Définir pour les onglets non sélectionnés
+                              unselectedLabelStyle: TextStyle(
+                                fontFamily: fontLufga,
+                                fontSize: 16, // Augmente la taille du texte pour les onglets non sélectionnés
+                              ),
+                            ),
+                          ),
+                          child: TabBar(
+                            tabs: const [
+                              Tab(text: 'Sign Up'),
+                              Tab(text: 'Log In'),
+                            ],
+                            indicatorColor: Colors.purple.shade200,
+                            labelColor: Colors.white,
+                            unselectedLabelColor: Colors.white70,
+                          ),
+                        ),
+ 
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              SingleChildScrollView(
+                                padding: EdgeInsets.all(24.0),
+                                child: Column(
+                                  children: [
+                                    _buildTextField(_nameController, 'Username'),
+                                    const SizedBox(height: 16.0),
+                                    _buildTextField(_emailController, 'Email', keyboardType: TextInputType.emailAddress),
+                                    const SizedBox(height: 16.0),
+                                    _buildTextField(_passwordControllerSignUp, 'Password', isPassword: true),
+                                    const SizedBox(height: 40.0),
+                                    _buildSignUpButton('Sign Up'),
+                                  ],
+                                ),
+                              ),
+                              SingleChildScrollView(
+                                padding: EdgeInsets.all(24.0),
+                                child: Column(
+                                  children: [
+                                    _buildTextField(_usernameController, 'Username'),
+                                    const SizedBox(height: 16.0),
+                                    _buildTextField(_passwordController, 'Password', isPassword: true),
+                                    const SizedBox(height: 40.0),
+                                    _buildLoginButton('Log In'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
-              indicatorColor: Colors.blue,
-              labelColor: Colors.blue,
-              unselectedLabelColor: Colors.grey,
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  SingleChildScrollView(
-                    padding: EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        _buildTextField(_nameController, 'Username'),
-                        SizedBox(height: 16.0),
-                        _buildTextField(_emailController, 'Email',
-                            keyboardType: TextInputType.emailAddress),
-                        SizedBox(height: 16.0),
-                        _buildTextField(_passwordControllerSignUp, 'Password',
-                            isPassword: true),
-                        SizedBox(height: 24.0),
-                        _buildSignUpButton('Get Started'),
-                      ],
-                    ),
-                  ),
-                  SingleChildScrollView(
-                    padding: EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        _buildTextField(_usernameController, 'Username'),
-                        SizedBox(height: 16.0),
-                        _buildTextField(_passwordController, 'Password',
-                            isPassword: true),
-                        SizedBox(height: 24.0),
-                        _buildLoginButton('Sign In'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -326,7 +394,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   }
 
   bool verifPassword(String password) {
-    if (password.length < 8) {
+    if (password.length < 12) {
       return false;
     }
     final RegExp majusculeRegex = RegExp(r'[A-Z]');
@@ -379,7 +447,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
           ),
         );
       } else {
-        var responseData = json.decode(response.body);
+         var responseData = json.decode(response.body);
         String message = responseData["message"];
         _errorMessage = message;
         setState(() {}); 
@@ -391,4 +459,3 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
     }
   }
 }
-

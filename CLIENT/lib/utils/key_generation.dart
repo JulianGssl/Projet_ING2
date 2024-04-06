@@ -1,6 +1,6 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 
 /// Génère une paire de clés X25519, puis les encode en base64 et les formate au format PEM.
