@@ -2,38 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_github_version/ui/screens/chatpage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+ 
 import '../../models/url.dart';
 import '../../models/user.dart';
-
+import '../../models/constants.dart';
+ 
+ 
+import 'custombottomnavbar.dart'; // Assurez-vous d'importer CustomBottomAppBar
+ 
 class ContactPage extends StatefulWidget {
   final String sessionToken;
   final User currentUser;
-
-  const ContactPage(
-      {super.key, required this.sessionToken, required this.currentUser});
-
+ 
+  const ContactPage({Key? key, required this.sessionToken, required this.currentUser}) : super(key: key);
+ 
   @override
   _ContactPageState createState() => _ContactPageState();
 }
-
+ 
 class _ContactPageState extends State<ContactPage> {
   List<dynamic> _contacts = [];
   late CustomSearch _searchDelegate;
-
+ 
   @override
   void initState() {
     super.initState();
     _fetchGetContacts();
-    _searchDelegate = CustomSearch(
-        currentUser: widget.currentUser, sessionToken: widget.sessionToken);
+    _searchDelegate = CustomSearch(currentUser: widget.currentUser, sessionToken: widget.sessionToken);
   }
-
+ 
   void _fetchGetContacts() async {
-    final response = await http.get(
-      Uri.parse('$url/contacts'),
-      headers: {'Authorization': 'Bearer ${widget.sessionToken}'},
-    );
+    // Remplacer '$url/contacts' par votre URL réelle
+    final response = await http.get(Uri.parse('$url/contacts'), headers: {'Authorization': 'Bearer ${widget.sessionToken}'});
+ 
     if (response.statusCode == 200) {
       final contentType = response.headers['content-type'];
       if (contentType != null && contentType.contains('application/json')) {
@@ -43,39 +44,285 @@ class _ContactPageState extends State<ContactPage> {
         });
         _searchDelegate.updateSearchTerms(_contacts);
       } else {
-        print('Response is not in JSON format');
+        print('La réponse n\'est pas au format JSON');
       }
     } else {
-      print('Failed to load contacts: ${response.statusCode}');
+      print('Échec du chargement des contacts : ${response.statusCode}');
     }
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     Map<String, List<dynamic>> groupedContacts = {};
-
+ 
     for (var contact in _contacts) {
       String firstLetter = contact['other_user_name'][0].toUpperCase();
       groupedContacts.putIfAbsent(firstLetter, () => []);
       groupedContacts[firstLetter]!.add(contact);
     }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Contact Page'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              showSearch(context: context, delegate: _searchDelegate);
-            },
-            icon: const Icon(Icons.search),
-          )
-        ],
+ 
+    List<String> sortedKeys = groupedContacts.keys.toList()..sort();
+ 
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF1C0F45), Color(0xFF6632C6)],
+        ),
       ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text('Contacts', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              onPressed: () {
+                showSearch(context: context, delegate: _searchDelegate);
+              },
+              icon: const Icon(Icons.search, color: Colors.white),
+            ),
+          ],
+        ),
+        body: ListView.builder(
+          itemCount: sortedKeys.length,  // Use sortedKeys for itemCount
+          itemBuilder: (context, index) {
+          String key = sortedKeys[index];  // Get the key from sortedKeys
+          List<dynamic> sortedContacts = groupedContacts[key]!;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    key,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+                Column(
+                  children: groupedContacts[key]!
+                      .map((contact) => ListTile(
+                            title: Text(contact['other_user_name'], style: TextStyle(color: Colors.white)),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatPage(
+                                      currentUser: widget.currentUser,
+                                      convId: contact['conversation_id'],
+                                      convName: contact['conversation_name'],
+                                      sessionToken: widget.sessionToken),
+                                ),
+                              );
+                            },
+                          ))
+                      .toList(),
+                ),
+              ],
+            );
+          },
+        ),
+        // Assurez-vous d'implémenter CustomBottomAppBar ou de le supprimer si inutile
+        bottomNavigationBar: CustomBottomAppBar(
+          currentUser: widget.currentUser,
+          sessionToken: widget.sessionToken,
+          activeIndex: 0,
+        ),
+      ),
+    );
+  }
+}
+ 
+ 
+class CustomSearch extends SearchDelegate {
+  final User currentUser;
+  final String sessionToken;
+ 
+  List<String> searchTerms = [];
+  List<dynamic> _contacts = [];
+ 
+  CustomSearch({required this.currentUser, required this.sessionToken});
+ 
+  void updateSearchTerms(List<dynamic> contacts) {
+    _contacts = contacts;
+    searchTerms.clear();
+    for (var contact in _contacts) {
+      searchTerms.add(contact['other_user_name']);
+    }
+  }
+ 
+       @override
+ThemeData appBarTheme(BuildContext context) {
+  final ThemeData theme = Theme.of(context);
+  return theme.copyWith(
+    textTheme: theme.textTheme.copyWith(
+      // This will ensure the text color is white for the search text input
+      subtitle1: theme.textTheme.subtitle1?.copyWith(color: Colors.white),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: Color(0xFF6632C6),
+      elevation: 0,
+      iconTheme: theme.primaryIconTheme.copyWith(color: Colors.white),
+      toolbarTextStyle: theme.textTheme.bodyText2?.copyWith(color: Colors.white),
+      titleTextStyle: theme.textTheme.headline6?.copyWith(color: Colors.white),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      // Make sure hint text color is white
+      hintStyle: TextStyle(color: Colors.white),
+      // Make sure the input text color is white
+      labelStyle: TextStyle(color: Colors.white),
+      fillColor: Colors.transparent,
+      filled: true,
+      border: InputBorder.none,
+      focusedBorder: UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.white), // Ensure this is white
+      ),
+    ),
+  );
+}
+ 
+ 
+ 
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        onPressed: () {
+          query = '';
+        },
+        icon: Icon(Icons.clear),
+      ),
+    ];
+  }
+ 
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        close(context, null);
+      },
+      icon: Icon(Icons.arrow_back),
+    );
+  }
+ 
+  Widget buildGroupedListView(Map<String, List<dynamic>> groupedContacts) {
+    return ListView.builder(
+      itemCount: groupedContacts.keys.length,
+      itemBuilder: (context, index) {
+        String key = groupedContacts.keys.elementAt(index);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                key,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: fontLufga),
+              ),
+            ),
+            Column(
+              children: groupedContacts[key]!
+                  .map((contact) => ListTile(
+                        title: Text(contact['other_user_name'], style: TextStyle(color: Colors.white, fontFamily: fontLufga)),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                currentUser: currentUser,
+                                convId: contact['conversation_id'],
+                                convName: contact['conversation_name'],
+                                sessionToken: sessionToken,
+                              ),
+                            ),
+                          );
+                        },
+                      ))
+                  .toList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+ 
+  @override
+Widget buildResults(BuildContext context) {
+  List<dynamic> matchContacts = [];
+  for (var contact in _contacts) {
+    if (contact['other_user_name'].toLowerCase().contains(query.toLowerCase())) {
+      matchContacts.add(contact);
+    }
+  }
+ 
+  return Theme(
+    data: ThemeData(
+      brightness: Brightness.dark, // Utilisez Brightness.dark pour un thème sombre général
+      appBarTheme: AppBarTheme(
+        backgroundColor: Color(0xFF6632C6), // Couleur de fond de l'appBar
+        iconTheme: IconThemeData(color: Colors.white), // Couleur des icônes de l'appBar
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        hintStyle: TextStyle(color: Colors.white, fontFamily: fontLufga), // Couleur du texte indicatif
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.white), // Couleur de la bordure lors de la saisie
+        ),
+      ),
+    ),
+    child: ListView.builder(
+      itemCount: matchContacts.length,
+      itemBuilder: (context, index) {
+        var result = matchContacts[index];
+        return ListTile(
+          title: Text(result['other_user_name'], style: TextStyle(color: Colors.white, fontFamily: fontLufga)),
+          onTap: () {
+            // Action lors de la sélection d'un contact
+          },
+        );
+      },
+    ),
+  );
+}
+ 
+ 
+  @override
+Widget buildSuggestions(BuildContext context) {
+  Map<String, List<dynamic>> groupedContacts = {};
+  for (var contact in _contacts) {
+    if (contact['other_user_name'].toLowerCase().contains(query.toLowerCase())) {
+      String firstLetter = contact['other_user_name'][0].toUpperCase();
+      groupedContacts.putIfAbsent(firstLetter, () => []);
+      groupedContacts[firstLetter]!.add(contact);
+    }
+  }
+ 
+  // Sort the section titles
+  List<String> sectionTitles = groupedContacts.keys.toList()..sort();
+ 
+  // Sort contacts within each section
+  for (var key in sectionTitles) {
+    groupedContacts[key]?.sort((a, b) =>
+      a['other_user_name'].toLowerCase().compareTo(b['other_user_name'].toLowerCase()));
+  }
+ 
+  return Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF1C0F45), Color(0xFF6632C6)],
+      ),
+    ),
+    child: Scaffold(
+      backgroundColor: Colors.transparent, // Make the Scaffold transparent to see the gradient
+      bottomNavigationBar: CustomBottomAppBar(currentUser: currentUser, sessionToken: sessionToken),
       body: ListView.builder(
-        itemCount: groupedContacts.keys.length,
+        itemCount: sectionTitles.length,
         itemBuilder: (context, index) {
-          String key = groupedContacts.keys.elementAt(index);
+          String key = sectionTitles[index];
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -83,22 +330,29 @@ class _ContactPageState extends State<ContactPage> {
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
                   key,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: fontLufga),
                 ),
               ),
               Column(
                 children: groupedContacts[key]!
                     .map((contact) => ListTile(
-                          title: Text(contact['other_user_name']),
+                          title: Text(
+                            contact['other_user_name'],
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: fontLufga
+                            )
+                          ),
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ChatPage(
-                                    currentUser: widget.currentUser,
-                                    convId: contact['conversation_id'],
-                                    convName: contact['conversation_name'],
-                                    sessionToken: widget.sessionToken),
+                                  currentUser: currentUser,
+                                  convId: contact['conversation_id'],
+                                  convName: contact['conversation_name'],
+                                  sessionToken: sessionToken,
+                                ),
                               ),
                             );
                           },
@@ -109,135 +363,8 @@ class _ContactPageState extends State<ContactPage> {
           );
         },
       ),
-    );
-  }
+    ),
+  );
 }
-
-// Assurez-vous que cette classe correspond à la page de votre liste de chat
-class ChatList extends StatelessWidget {
-  final int userId;
-
-  const ChatList({Key? key, required this.userId}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Chat List"),
-      ),
-      // Implémentez le reste de votre interface utilisateur ici
-      body: Center(
-        child: Text("Chat avec l'utilisateur ID: $userId"),
-      ),
-    );
-  }
+ 
 }
-
-class CustomSearch extends SearchDelegate {
-  final User currentUser;
-  final String sessionToken;
-
-  List<String> searchTerms = [];
-  List<dynamic> _contacts = [];
-
-  CustomSearch({required this.currentUser, required this.sessionToken});
-
-  void updateSearchTerms(List<dynamic> contacts) {
-    _contacts = contacts;
-    searchTerms.clear();
-    for (var contact in _contacts) {
-      searchTerms.add(contact['other_user_name']);
-    }
-  }
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    return [
-      IconButton(
-        onPressed: () {
-          query = '';
-        },
-        icon: Icon(Icons.clear),
-      )
-    ];
-  }
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      onPressed: () {
-        close(context, null);
-      },
-      icon: Icon(Icons.arrow_back),
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    List<dynamic> matchContacts = [];
-    for (var contact in _contacts) {
-      if (contact['other_user_name']
-          .toLowerCase()
-          .contains(query!.toLowerCase())) {
-        matchContacts.add(contact);
-      }
-    }
-    return ListView.builder(
-      itemCount: matchContacts.length,
-      itemBuilder: (context, index) {
-        var result = matchContacts[index];
-        return ListTile(
-          title: Text(result['other_user_name']),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatPage(
-                  currentUser: currentUser,
-                  convId: result['conversation_id'],
-                  convName: result['conversation_name'],
-                  sessionToken: sessionToken,
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    List<dynamic> matchContacts = [];
-    for (var contact in _contacts) {
-      if (contact['other_user_name']
-          .toLowerCase()
-          .contains(query!.toLowerCase())) {
-        matchContacts.add(contact);
-      }
-    }
-    return ListView.builder(
-      itemCount: matchContacts.length,
-      itemBuilder: (context, index) {
-        var result = matchContacts[index];
-        return ListTile(
-          title: Text(result['other_user_name']),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatPage(
-                  currentUser: currentUser,
-                  convId: result['conversation_id'],
-                  convName: result['conversation_name'],
-                  sessionToken: sessionToken,
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
