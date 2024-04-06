@@ -93,7 +93,7 @@ Future<String> _fetchCSRFToken(String formRoute) async {
       // Si l'ajout est réussi
       // Afficher un message à l'utilisateur ou effectuer une autre action
       print('Utilisateur ajouté avec succès');
-      Navigator.push(
+      Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
                         builder: (context) => ContactPage(
