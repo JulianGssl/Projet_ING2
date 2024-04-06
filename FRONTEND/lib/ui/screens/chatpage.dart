@@ -65,16 +65,15 @@ class _ChatPageState extends State<ChatPage> {
       'groupName': groupName
       });
   }
-Future<String> _fetchCSRFToken(String formRoute, int formId) async {
-  final response = await http.post(
-    Uri.parse('$url/$formRoute'),
+Future<String> _fetchCSRFToken(String formRoute) async {
+  // FormRoute représente la route spécifique pour obtenir le jeton CSRF
+  final response = await http.get(
+    Uri.parse('$url/$formRoute'), // Utilisez la route spécifique passée en paramètre
     headers: {
       'Authorization': 'Bearer ${widget.sessionToken}',
       'Content-Type': 'application/json'
     },
-    body: jsonEncode({'form_id': formId}),  // Inclure l'identifiant du formulaire dans le corps de la requête
   );
-
   if (response.statusCode == 200) {
     var responseData = json.decode(response.body);
     String csrfToken = responseData['csrf_token'];
@@ -169,7 +168,7 @@ Future<String> _fetchCSRFToken(String formRoute, int formId) async {
   @override
   void initState() {
     super.initState();
-    _fetchCSRFToken('get_CSRF/private_message',3); // Récupérer le jeton csrf
+    _fetchCSRFToken('get_CSRF/private_message/3'); // Récupérer le jeton csrf
     print("----------------- ChatPage - initState -----------------");
     // Initialisez la connexion SocketIO
     print("Calling _initSocketIO");

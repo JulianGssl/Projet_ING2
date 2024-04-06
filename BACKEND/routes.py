@@ -174,6 +174,7 @@ def init_routes(app, mail,csrf,limiter):
         if new_user:
             return jsonify({'idUser': user_id}), 200
             
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -401")
         return jsonify({'message': 'Invalid credentials'}), 401
 
@@ -209,6 +210,10 @@ def init_routes(app, mail,csrf,limiter):
         cm_alias = aliased(ConvMember)
         user_alias = aliased(User)
         conv_alias = aliased(Conv)
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
 
         # Sous-requête pour sélectionner distinctement les valeurs de idConv
         subquery = db.session.query(distinct(cm_alias.idConv)).filter(cm_alias.idUser == id_user).subquery()
@@ -243,6 +248,7 @@ def init_routes(app, mail,csrf,limiter):
             for contact in contacts
         ]
 
+        app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         return jsonify({"contacts": result}), 200
         
     # Endpoint pour révoquer le token JWT actuel
@@ -565,11 +571,16 @@ def init_routes(app, mail,csrf,limiter):
         input_code=req_data['code']
         
         user=db.session.query(User).filter(User.idUser == idUser).first()
+        ## Informations pour les log
+        client_ip = request.remote_addr
+        http_method = request.method
+        requested_url = request.url
         if user:
             if(user.valid_code==input_code):
                 user.is_validate=True
                 db.session.commit()
                 return jsonify({'message': 'Account validated'}), 200
+            app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
         
    
     # @app.route('/get_CSRF', methods=['GET'])
@@ -607,16 +618,11 @@ def init_routes(app, mail,csrf,limiter):
     #     print(f"Token Csrf obtenu : {csrf_token}")
     #     app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
     #     return jsonify({'csrf_token': csrf_token}), 200
-    @app.route('/get_CSRF/edit_profile', methods=['POST'])
-    @app.route('/get_CSRF/displayUserByName', methods=['POST'])
-    @app.route('/get_CSRF/private_message', methods=['POST'])
+    @app.route('/get_CSRF/displayUserByName/<int:form_id>', methods=['GET'])
+    @app.route('/get_CSRF/private_message/<int:form_id>', methods=['GET'])
     @csrf.exempt
     @jwt_required()
-    def get_csrf_token():
-        form_id = request.json.get('form_id')  # Obtenir l'identifiant du formulaire à partir du corps de la requête
-        if form_id is None:
-            return jsonify({'error': 'Identifiant du formulaire manquant dans la requête'}), 400
-        
+    def get_csrf_token(form_id):
         # Générez et renvoyez le jeton CSRF ici en utilisant form_id si nécessaire
         csrf_token = generate_csrf_token(form_id)
         
@@ -626,7 +632,6 @@ def init_routes(app, mail,csrf,limiter):
         requested_url = request.url
         print(f"Token Csrf obtenu : {csrf_token}")
         app.logger.info(f"{client_ip} - - [{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] \"{http_method} {requested_url} HTTP/1.1\"  -200")
-        
         return jsonify({'csrf_token': csrf_token}), 200
 
             

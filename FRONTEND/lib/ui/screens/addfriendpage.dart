@@ -25,23 +25,22 @@ class _AddFriendPageState extends State<AddFriendPage> {
 
   @override
   void initState() {
-    _fetchCSRFToken('get_CSRF/displayUserByName',2);
+    _fetchCSRFToken('get_CSRF/displayUserByName/2');
     super.initState();
   }
 
 
   
 
-Future<String> _fetchCSRFToken(String formRoute, int formId) async {
-  final response = await http.post(
-    Uri.parse('$url/$formRoute'),
+Future<String> _fetchCSRFToken(String formRoute) async {
+  // FormRoute représente la route spécifique pour obtenir le jeton CSRF
+  final response = await http.get(
+    Uri.parse('$url/$formRoute'), // Utilisez la route spécifique passée en paramètre
     headers: {
       'Authorization': 'Bearer ${widget.sessionToken}',
       'Content-Type': 'application/json'
     },
-    body: jsonEncode({'form_id': formId}),  // Inclure l'identifiant du formulaire dans le corps de la requête
   );
-
   if (response.statusCode == 200) {
     var responseData = json.decode(response.body);
     String csrfToken = responseData['csrf_token'];
@@ -53,6 +52,7 @@ Future<String> _fetchCSRFToken(String formRoute, int formId) async {
     throw Exception('Failed to load CSRF token');
   }
 }
+
 
   // Fonction pour récupérer les utilisateurs depuis le backend Flask
   Future<void> fetchUsers(String username) async {

@@ -34,7 +34,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    _fetchCSRFToken('get_CSRF/edit_profile',1);
+    _fetchCSRFToken('get_CSRF/edit_profile/1');
     _fetchGetProfile();
   } 
 
@@ -65,16 +65,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
 //   }
 // }
 
-Future<String> _fetchCSRFToken(String formRoute, int formId) async {
-  final response = await http.post(
-    Uri.parse('$url/$formRoute'),
+Future<String> _fetchCSRFToken(String formRoute) async {
+  // FormRoute représente la route spécifique pour obtenir le jeton CSRF
+  final response = await http.get(
+    Uri.parse('$url/$formRoute'), // Utilisez la route spécifique passée en paramètre
     headers: {
       'Authorization': 'Bearer ${widget.sessionToken}',
       'Content-Type': 'application/json'
     },
-    body: jsonEncode({'form_id': formId}),  // Inclure l'identifiant du formulaire dans le corps de la requête
   );
-
   if (response.statusCode == 200) {
     var responseData = json.decode(response.body);
     String csrfToken = responseData['csrf_token'];
