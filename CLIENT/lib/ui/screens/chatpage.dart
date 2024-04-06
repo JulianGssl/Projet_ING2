@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_github/utils/crypto.dart';
 import '../../models/user.dart';
 import '../../models/url.dart';
 import '../../models/message.dart';
@@ -11,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import 'chatlistpage.dart';
+import '../../utils/crypto.dart';
 
 class ChatPage extends StatefulWidget {
   final int convId;
