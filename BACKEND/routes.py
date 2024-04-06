@@ -151,6 +151,16 @@ def init_routes(app, mail,csrf,limiter):
         private_key=req_data["privateKeyBase64"]
         public_key=req_data["publicKeyBase64"]
         salt=req_data["salt"]
+
+         # Vérification si l'email existe déjà
+        existing_email_user = User.query.filter_by(email=email).first()
+        if existing_email_user:
+            return jsonify({'message': 'Email already exists'}), 409  # Utiliser le code 409 pour indiquer un conflit
+        
+        # Vérification si le nom d'utilisateur existe déjà
+        existing_username_user = User.query.filter_by(username=username).first()
+        if existing_username_user:
+            return jsonify({'message': 'Username already exists'}), 409  # Utiliser le code 409 pour indiquer un conflit
         
         #Génération code de validation de compte:
         random_number = random.randint(0, 999999)

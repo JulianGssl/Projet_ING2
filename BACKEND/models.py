@@ -8,7 +8,7 @@ db = SQLAlchemy()
 
 class User(db.Model):
     idUser = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(45), nullable=True)
+    username = db.Column(db.String(45), nullable=True, unique=True)
     email = db.Column(db.String(45), nullable=True, unique=True)
     is_validate=db.Column(db.Boolean, default=False)
     valid_code=db.Column(db.String(6),nullable=True)
