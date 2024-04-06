@@ -114,6 +114,7 @@ class _ContactPageState extends State<ContactPage> {
                                       currentUser: widget.currentUser,
                                       convId: contact['conversation_id'],
                                       convName: contact['conversation_name'],
+                                      realConvName: contact['other_user_name'],
                                       sessionToken: widget.sessionToken),
                                 ),
                               );
@@ -235,6 +236,7 @@ ThemeData appBarTheme(BuildContext context) {
                                 currentUser: currentUser,
                                 convId: contact['conversation_id'],
                                 convName: contact['conversation_name'],
+                                realConvName: contact['other_user_name'],
                                 sessionToken: sessionToken,
                               ),
                             ),
@@ -351,6 +353,7 @@ Widget buildSuggestions(BuildContext context) {
                                   currentUser: currentUser,
                                   convId: contact['conversation_id'],
                                   convName: contact['conversation_name'],
+                                  realConvName: contact['other_user_name'],
                                   sessionToken: sessionToken,
                                 ),
                               ),
