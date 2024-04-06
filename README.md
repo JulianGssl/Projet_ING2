@@ -1,5 +1,4 @@
-# Application de Messagerie Sécurisée : App_Name
-Refactorisation du code de 'main.dart' de la branche main dans plusieurs fichiers pour une meilleure organisation et lisibilité.
+# Application de Messagerie Sécurisée avec Cryptographie Avancée: Cipher
 
 <br><br>
 
