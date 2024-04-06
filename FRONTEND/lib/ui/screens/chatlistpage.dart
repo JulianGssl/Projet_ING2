@@ -160,7 +160,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         color: Colors.white,
                       ),
                     ),
-                    title: Text(message['conv_name'], style: TextStyle(fontFamily: fontLufga, color: Colors.white),),
+                    title: Text(message['real_conv_name'], style: TextStyle(fontFamily: fontLufga, color: Colors.white),),
                     subtitle: Text(message['last_message_content'], style: TextStyle(fontFamily: fontLufga, color: Colors.white)),
                     trailing: Text(
                       DateFormat.Hm().format(DateTime.parse(message['last_message_date'])), // Formatage en heure et minute
@@ -185,6 +185,7 @@ class _ChatListPageState extends State<ChatListPage> {
                                 convId: message['conv_id'], 
                                 convName: message['conv_name'],
                                 sessionToken: widget.sessionToken,
+                                realConvName: message['real_conv_name']
                               );
                             },
                           ),
