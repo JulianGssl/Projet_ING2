@@ -268,7 +268,7 @@ def init_routes(app, mail,csrf,limiter):
     def logout():
         jti = get_jwt()["jti"]
         token = TokenBlocklist(jti=jti)
-        DBAPISet.session.add(token)
+        db.session.add(token)
         db.session.commit()
 
         ## Informations pour les log
