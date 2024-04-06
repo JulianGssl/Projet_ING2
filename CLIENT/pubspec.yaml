@@ -1,4 +1,4 @@
-name: flutter_github_version
+name: flutter_github
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -36,12 +36,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   http: ^1.2.1
-  cryptography: ^2.7.0
   socket_io_client: ^2.0.3+1
   jwt_decode: ^0.3.1
+  cryptography: ^2.7.0
   encrypt: ^5.0.3
   intl: ^0.19.0
-
 
 dev_dependencies:
   flutter_test:
@@ -59,11 +58,35 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+    assets:
+        - lib/assets/images/
+    fonts:
+      - family: Lufga
+        fonts:
+          - asset: lib/fonts/LufgaBlack.ttf
+          - asset: lib/fonts/LufgaBlackItalic.ttf
+          - asset: lib/fonts/LufgaBold.ttf
+          - asset: lib/fonts/LufgaBoldItalic.ttf
+          - asset: lib/fonts/LufgaExtraBold.ttf
+          - asset: lib/fonts/LufgaExtraBoldItalic.ttf
+          - asset: lib/fonts/LufgaExtraLight.ttf
+          - asset: lib/fonts/LufgaExtraLightItalic.ttf
+          - asset: lib/fonts/LufgaItalic.ttf
+          - asset: lib/fonts/LufgaLight.ttf
+          - asset: lib/fonts/LufgaLightItalic.ttf
+          - asset: lib/fonts/LufgaMedium.ttf
+          - asset: lib/fonts/LufgaMediumItalic.ttf
+          - asset: lib/fonts/LufgaRegular.ttf
+          - asset: lib/fonts/LufgaSemiBold.ttf
+          - asset: lib/fonts/LufgaSemiBoldItalic.ttf
+          - asset: lib/fonts/LufgaThin.ttf
+          - asset: lib/fonts/LufgaThinItalic.ttf
+
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
-  uses-material-design: true
+    uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:
