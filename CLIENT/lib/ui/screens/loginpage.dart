@@ -11,7 +11,7 @@ import '../../models/constants.dart';
 import 'package:jwt_decode/jwt_decode.dart';
 
 import 'chatlistpage.dart';
-import 'validitionpage.dart';
+import 'validationpage.dart';
 import '../../utils/key_generation.dart';
 
 import '../../utils/crypto.dart';
