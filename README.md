@@ -18,23 +18,22 @@ Pour configurer votre environnement de travail vous pouvez suivre ce tutoriel :
 https://docs.flutter.dev/get-started/install
 
 Sinon voici un détail des étapes : 
-Installer de Visual Studio Code (VSCode)
-Installer l’extension Flutter sur VSCode
-Télécharger le SDK de Flutter (se référer à la procédure d’installation disponible sur leur site, voir lien ci-dessus)
-Pour créer un projet Flutter sur VSCode : CTRL + Shift + P 
-Taper ‘Flutter’ puis sélectionner les choix suivants : Flutter: New Project > Application
-Sélectionner un dossier pour créer votre projet
+-Installer de Visual Studio Code (VSCode)
+-Installer l’extension Flutter sur VSCode
+-Télécharger le SDK de Flutter (se référer à la procédure d’installation disponible sur leur site, voir lien ci-dessus)
+-Pour créer un projet Flutter sur VSCode : CTRL + Shift + P 
+-Taper ‘Flutter’ puis sélectionner les choix suivants : Flutter: New Project > Application
+-Sélectionner un dossier pour créer votre projet
 
-
-Télécharger le projet
-Extraire le dossier CLIENT 
-Copier le dossier lib de CLIENT dans le répertoire de votre projet nouvellement créé
-Copier le fichier pubspec.yaml de CLIENT dans le répertoire de votre projet 
-Pour installer les dépendances nécessaires : 
-Aller sur le fichier pubspec.yaml copié et faire CTRL + S
-Ouvrir un terminal sur VSCode et taper : flutter pub get
-Vous pouvez désormais vous rendre sur le fichier main.dart et lancer l’application avec Run au dessus de la ligne void main()
-Il vous demanderont de choisir un “device” , choisissez Google Chrome ou votre navigateur habituel
+-Télécharger le projet
+-Extraire le dossier CLIENT 
+-Copier le dossier lib de CLIENT dans le répertoire de votre projet nouvellement créé
+-Copier le fichier pubspec.yaml de CLIENT dans le répertoire de votre projet 
+-Pour installer les dépendances nécessaires : 
+-Aller sur le fichier pubspec.yaml copié et faire CTRL + S
+-Ouvrir un terminal sur VSCode et taper : flutter pub get
+-Vous pouvez désormais vous rendre sur le fichier main.dart et lancer l’application avec Run au dessus de la ligne void main()
+-Il vous demanderont de choisir un “device” , choisissez Google Chrome ou votre navigateur habituel
 
 -Dans une nouvelle instance de VSCode, faites File > Open Folder et choisissez le dossier SERVEUR
 -Une fois dans le dossier SERVEUR faites CTRL+SHIFT+P et rentrer : “Python:Create an Environment”
