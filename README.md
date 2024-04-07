@@ -48,7 +48,8 @@ et insérer votre nom d’utilisateur mysql à la place de “root” et votre l
 SQLALCHEMY_DATABASE_URI = 'mysql://root:cytech0001@localhost/app_db'
 Vous pouvez désormais vous rendre le fichier run.py et lancer le serveur avec la commande : python run.py
 
-Lancement du projet: Une fois la partie serveur et client lancées, dans le navigateur où se trouve l’application ouvrez un nouvel onglet et entrez: https://localhost:8000 . Cliquez sur “Paramètres avancés” puis sur “Continuer vers le site localhost” tout en bas. Cela permet de faire confiance à l’application car nous n’avons pas de certificat pour https.
+Lancement du projet:
+Une fois la partie serveur et client lancées, dans le navigateur où se trouve l’application ouvrez un nouvel onglet et entrez: https://localhost:8000 . Cliquez sur “Paramètres avancés” puis sur “Continuer vers le site localhost” tout en bas. Cela permet de faire confiance à l’application car nous n’avons pas de certificat pour https.
 C'est bon, vous pouvez maintenant utiliser l'application.
 
 
