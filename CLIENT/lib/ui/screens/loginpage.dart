@@ -419,7 +419,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
       String salt = generateSalt();
       Uint8List salt_converted = Uint8List.fromList(utf8.encode(salt));
       var response = await http.post(
-        Uri.parse('$url/signUp'),
+        Uri.parse('$url/realSignUp'),
         body: jsonEncode({
           'username': _nameController.text,
           'email': _emailController.text,
