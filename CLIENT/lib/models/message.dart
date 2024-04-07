@@ -19,7 +19,7 @@ class Message {
       idSender: json['id_sender'] as int,
       content: json['content'] as String,
       date: DateTime.parse(json['date'] as String),
-      isRead: json['is_read'];
+      isRead: json['is_read']
     );
   }
 
