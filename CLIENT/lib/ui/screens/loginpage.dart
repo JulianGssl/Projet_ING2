@@ -392,7 +392,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   }
 
   bool verifPassword(String password) {
-    if (password.length < 12) {
+    if (password.length < 8) {
       return false;
     }
     final RegExp majusculeRegex = RegExp(r'[A-Z]');
