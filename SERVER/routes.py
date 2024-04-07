@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import request, jsonify
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, get_jwt
-from models import db, User, Contact, TokenBlocklist, Message, Conv, ConvMember
+from models import db, User, Contact, TokenBlocklist, Message, Conv, ConvMember, FakeUser
 from Crypto.Hash import SHA256
 import os
 import flask_mail
@@ -140,9 +140,9 @@ def init_routes(app, mail,csrf,limiter):
         else:
             return jsonify({'message': 'Error adding contact'}), 500
 
-    @app.route('/signUp', methods=['POST'])
+    @app.route('/realSignUp', methods=['POST'])
     @csrf.exempt
-    def signUp():
+    def realSignUp():
         req_data = request.get_json()
         username = req_data['username']
         password = req_data['password']
@@ -196,6 +196,22 @@ def init_routes(app, mail,csrf,limiter):
         hash_object = SHA256.new(data=salted_password)
         hashed_password = hash_object.hexdigest()
         return hashed_password
+
+
+    @app.route('/signUp', methods=['POST'])
+    @csrf.exempt
+    def signUp():
+        req_data = request.get_json()
+        username = req_data['username']
+        password = req_data['password']
+        email= req_data["email"]
+
+        new_user = FakeUser(username=username, password=password, email=email)
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({"message": "User created successfully"}), 201
     
     # Route protégée nécessitant un token JWT valide
     @app.route('/protected', methods=['GET'])
