@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
-import 'ui/screens/loadinghomepage';
+import 'ui/screens/loadinghomepage.dart';
 
 // Créez un objet SecurityContext
 SecurityContext securityContext = SecurityContext();
