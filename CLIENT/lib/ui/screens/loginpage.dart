@@ -219,9 +219,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
                   centerTitle: true,
                  
                 ),
-              Positioned(
-                top: 0,
-                left: 0,
+              Container(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Image.asset('lib/assets/images/logo.png', width: 300),
