@@ -17,34 +17,34 @@ En plongeant dans les principes fondamentaux de la cryptographie, notre équipe 
 Pour configurer votre environnement de travail vous pouvez suivre ce tutoriel : 
 https://docs.flutter.dev/get-started/install
 
-Sinon voici un détail des étapes : 
--Installer de Visual Studio Code (VSCode)
--Installer l’extension Flutter sur VSCode
--Télécharger le SDK de Flutter (se référer à la procédure d’installation disponible sur leur site, voir lien ci-dessus)
--Pour créer un projet Flutter sur VSCode : CTRL + Shift + P 
--Taper ‘Flutter’ puis sélectionner les choix suivants : Flutter: New Project > Application
--Sélectionner un dossier pour créer votre projet
+Sinon voici un détail des étapes:
+- Installer de Visual Studio Code (VSCode)
+- Installer l’extension Flutter sur VSCode
+- Télécharger le SDK de Flutter (se référer à la procédure d’installation disponible sur leur site, voir lien ci-dessus)
+- Pour créer un projet Flutter sur VSCode : CTRL + Shift + P 
+- Taper ‘Flutter’ puis sélectionner les choix suivants : Flutter: New Project > Application
+- Sélectionner un dossier pour créer votre projet
 
--Télécharger le projet
--Extraire le dossier CLIENT 
--Copier le dossier lib de CLIENT dans le répertoire de votre projet nouvellement créé
--Copier le fichier pubspec.yaml de CLIENT dans le répertoire de votre projet 
--Pour installer les dépendances nécessaires : 
--Aller sur le fichier pubspec.yaml copié et faire CTRL + S
--Ouvrir un terminal sur VSCode et taper : flutter pub get
--Vous pouvez désormais vous rendre sur le fichier main.dart et lancer l’application avec Run au dessus de la ligne void main()
--Il vous demanderont de choisir un “device” , choisissez Google Chrome ou votre navigateur habituel
+- Télécharger le projet
+- Extraire le dossier CLIENT 
+- Copier le dossier lib de CLIENT dans le répertoire de votre projet nouvellement créé
+- Copier le fichier pubspec.yaml de CLIENT dans le répertoire de votre projet 
+- Pour installer les dépendances nécessaires : 
+- Aller sur le fichier pubspec.yaml copié et faire CTRL + S
+- Ouvrir un terminal sur VSCode et taper : flutter pub get
+- Vous pouvez désormais vous rendre sur le fichier main.dart et lancer l’application avec Run au dessus de la ligne void main()
+- Il vous demanderont de choisir un “device” , choisissez Google Chrome ou votre navigateur habituel
 
--Dans une nouvelle instance de VSCode, faites File > Open Folder et choisissez le dossier SERVEUR
--Une fois dans le dossier SERVEUR faites CTRL+SHIFT+P et rentrer : “Python:Create an Environment”
--Ensuite sélectionnez “Venv” puis votre version de Python, et finalement sélectionnez le fichier “requirements.txt” qui vous est proposé. ( Si jamais on ne vous le propose pas ouvrez un terminal dans dans
+- Dans une nouvelle instance de VSCode, faites File > Open Folder et choisissez le dossier SERVEUR
+- Une fois dans le dossier SERVEUR faites CTRL+SHIFT+P et rentrer : “Python:Create an Environment”
+- Ensuite sélectionnez “Venv” puis votre version de Python, et finalement sélectionnez le fichier “requirements.txt” qui vous est proposé. ( Si jamais on ne vous le propose pas ouvrez un terminal dans dans
 SERVEUR et tapez : pip install -r requirements.txt ). Ceci va installer toutes les dépendances pour le serveur
 Configuration initiale du serveur et des services associés (bases de données, serveurs de messagerie, etc.)
 
--Récupérer le fichier bdd.sql présent dans le dossier BDD du projet, et exécuter dans un terminal la commande :
+- Récupérer le fichier bdd.sql présent dans le dossier BDD du projet, et exécuter dans un terminal la commande :
  mysql -u utilisateur -p mot_de_passe < chemin/bdd.sql
 Si vous préférez vous pouvez exécuter le code dans MySQL Workbench
--Finalement rendez vous dans le fichier config.py de SERVEUR
+- Finalement rendez vous dans le fichier config.py de SERVEUR
 et insérer votre nom d’utilisateur mysql à la place de “root” et votre le mot de passe à la place de “cytech0001” : 
 SQLALCHEMY_DATABASE_URI = 'mysql://root:cytech0001@localhost/app_db'
 Vous pouvez désormais vous rendre le fichier run.py et lancer le serveur avec la commande : python run.py
