@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/user.dart';
 import '../../models/url.dart';
 import '../../models/message.dart';
