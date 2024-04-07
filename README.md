@@ -12,7 +12,7 @@ Whisper est une application de messagerie sécurisée conçue avec une approche 
 
 En plongeant dans les principes fondamentaux de la cryptographie, notre équipe a développé Whisper pour offrir bien plus qu'une simple messagerie. C'est une solution innovante qui protège efficacement la vie privée des utilisateurs tout en assurant la sécurité de leurs échanges. Avec Whisper, vous pouvez communiquer en toute confiance, sachant que vos conversations sont protégées contre les regards indésirables et les interceptions.
 
-##Installation:
+## Installation:
 
 Pour configurer votre environnement de travail vous pouvez suivre ce tutoriel : 
 https://docs.flutter.dev/get-started/install
