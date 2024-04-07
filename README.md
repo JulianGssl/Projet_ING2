@@ -37,7 +37,8 @@ Sinon voici un détail des étapes :
 
 -Dans une nouvelle instance de VSCode, faites File > Open Folder et choisissez le dossier SERVEUR
 -Une fois dans le dossier SERVEUR faites CTRL+SHIFT+P et rentrer : “Python:Create an Environment”
--Ensuite sélectionnez “Venv” puis votre version de Python, et finalement sélectionnez le fichier “requirements.txt” qui vous est proposé. ( Si jamais on ne vous le propose pas ouvrez un terminal dans dans SERVEUR et tapez : pip install -r requirements.txt ). Ceci va installer toutes les dépendances pour le serveur
+-Ensuite sélectionnez “Venv” puis votre version de Python, et finalement sélectionnez le fichier “requirements.txt” qui vous est proposé. ( Si jamais on ne vous le propose pas ouvrez un terminal dans dans
+SERVEUR et tapez : pip install -r requirements.txt ). Ceci va installer toutes les dépendances pour le serveur
 Configuration initiale du serveur et des services associés (bases de données, serveurs de messagerie, etc.)
 
 -Récupérer le fichier bdd.sql présent dans le dossier BDD du projet, et exécuter dans un terminal la commande :
