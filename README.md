@@ -16,7 +16,6 @@ En plongeant dans les principes fondamentaux de la cryptographie, notre équipe 
 
 Pour configurer votre environnement de travail vous pouvez suivre ce tutoriel : 
 https://docs.flutter.dev/get-started/install
-
 Sinon voici un détail des étapes:
 - Installer de Visual Studio Code (VSCode)
 - Installer l’extension Flutter sur VSCode
@@ -25,7 +24,7 @@ Sinon voici un détail des étapes:
 - Taper ‘Flutter’ puis sélectionner les choix suivants : Flutter: New Project > Application
 - Sélectionner un dossier pour créer votre projet
 
-- Télécharger le projet
+Configuration du projet:
 - Extraire le dossier CLIENT 
 - Copier le dossier lib de CLIENT dans le répertoire de votre projet nouvellement créé
 - Copier le fichier pubspec.yaml de CLIENT dans le répertoire de votre projet 
