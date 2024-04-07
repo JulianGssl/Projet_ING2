@@ -16,6 +16,13 @@ class User(db.Model):
     salt = db.Column(db.String(255),nullable=True)
     public_key = db.Column(db.String(4096),nullable=True)
     private_key=db.Column(db.String(4096),nullable=True)
+    
+class FakeUser(db.Model):
+    __tablename__ = 'fakeuser'
+    idFakeUser = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(45), nullable=False)
+    password = db.Column(db.String(255), nullable=False) 
+    email = db.Column(db.String(45), nullable=False, unique=True)
 
 class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
