@@ -166,7 +166,7 @@ class _ChatListPageState extends State<ChatListPage> {
                       ),
                     ),
                     title: Text(message['real_conv_name'], style: TextStyle(fontFamily: fontLufga, color: Colors.white),),
-                    subtitle: Text(message['last_message_content'], style: TextStyle(fontFamily: fontLufga, color: Colors.white)),
+                    subtitle: Text(hasUnreadMessages(message, widget.currentUser.id) ? 'Nouveau message' : '', style: TextStyle(fontFamily: fontLufga, color: Colors.white, fontWeight: FontWeight.bold),),
                     trailing: Text(
                       DateFormat.Hm().format(DateTime.parse(message['last_message_date'])), // Formatage en heure et minute
                       style: TextStyle(fontFamily: fontLufga, color: Colors.white)
