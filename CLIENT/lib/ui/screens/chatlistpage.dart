@@ -30,6 +30,7 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<dynamic> recentMessages = [];
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -91,6 +92,11 @@ class _ChatListPageState extends State<ChatListPage> {
 
   @override
   Widget build(BuildContext context) {
+     // Filtrer les messages récents en fonction du terme de recherche
+    List<dynamic> filteredMessages = recentMessages.where((message) {
+      return message['real_conv_name'].toLowerCase().contains(searchQuery.toLowerCase());
+    }).toList();
+    
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -127,6 +133,11 @@ class _ChatListPageState extends State<ChatListPage> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
+                onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                    });
+                  },
                 decoration: InputDecoration(
                   hintText: 'Search for user',
                   hintStyle: TextStyle(color: Colors.white70, fontFamily: fontLufga), // Style du texte indicateur
@@ -152,9 +163,9 @@ class _ChatListPageState extends State<ChatListPage> {
 
             Expanded(
               child: ListView.builder(
-                itemCount: recentMessages.length,
-                itemBuilder: (context, index) {
-                  final message = recentMessages[index];
+                  itemCount: filteredMessages.length,
+                  itemBuilder: (context, index) {
+                    final message = filteredMessages[index];
                   return ListTile(
                       leading: CircleAvatar(
                       radius: 25, // Ajustez le rayon pour correspondre à la taille souhaitée
