@@ -122,11 +122,24 @@ class _ChatPageState extends State<ChatPage> {
         final List<Message> decryptedMessages = [];
 
         for (var data in responseData) {
-          final decryptedContent =
-              await decryptString(data['content'], sharedSecretKey);
-          final decryptedMessage = Message.fromJson(data);
-          decryptedMessage.content = decryptedContent;
-          decryptedMessages.add(decryptedMessage);
+          try {
+            final decryptedContent =
+                await decryptString(data['content'], sharedSecretKey);
+            final decryptedMessage = Message.fromJson(data);
+            decryptedMessage.content = decryptedContent;
+            decryptedMessages.add(decryptedMessage);
+          } catch (error) {
+            print('Error decrypting message: $error');
+            // Handle decryption error by creating a new Message with warning content
+            final warningMessage = Message(
+              idConv: data['id_conv'],
+              idSender: data['id_sender'],
+              content: 'WARNING: Message could not be decrypted',
+              date: DateTime.now(), // You might want to set the date to something meaningful
+              isRead: data['is_read'], // You might want to adjust other properties accordingly
+            );
+            decryptedMessages.add(warningMessage);
+          }
         }
         setState(() {
           _messages.addAll(decryptedMessages);
@@ -384,43 +397,62 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessage(Message message) {
-    final bool isUserMessage = message.idSender == widget.currentUser.id;
-    final messageColor = isUserMessage
-        ? Color.fromARGB(255, 119, 67, 215)
-        : Color.fromARGB(255, 34, 18, 62);
-    final textColor = isUserMessage ? Colors.white : Colors.white;
+  final bool isUserMessage = message.idSender == widget.currentUser.id;
+  final messageColor = isUserMessage ? Color.fromARGB(255, 119, 67, 215) : Color.fromARGB(255, 34, 18, 62);
+  final textColor = isUserMessage ? Colors.white : Colors.white;
 
-    return Align(
-      alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-        decoration: BoxDecoration(
-          color: messageColor,
-          borderRadius: isUserMessage
-              ? BorderRadius.only(
-                  topLeft: Radius.circular(15),
-                  bottomLeft: Radius.circular(15),
-                  topRight: Radius.circular(15),
-                )
-              : BorderRadius.only(
-                  topRight: Radius.circular(15),
-                  bottomRight: Radius.circular(15),
-                  topLeft: Radius.circular(15),
-                ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
+  // Formatage de la date pour n'afficher que l'heure et les minutes
+  final String formattedTime = DateFormat('HH:mm').format(message.date);
+
+  return Align(
+    alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
+    child: Container(
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: BoxDecoration(
+        color: messageColor,
+        borderRadius: isUserMessage
+            ? BorderRadius.only(
+                topLeft: Radius.circular(15),
+                bottomLeft: Radius.circular(15),
+                topRight: Radius.circular(15),
+              )
+            : BorderRadius.only(
+                topRight: Radius.circular(15),
+                bottomRight: Radius.circular(15),
+                topLeft: Radius.circular(15),
+              ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
               message.content,
               style: TextStyle(color: textColor),
             ),
-            SizedBox(height: 5),
-          ],
-        ),
+          ),
+          SizedBox(width: 5), // Espace entre le texte du message et l'heure
+          Text(
+            formattedTime,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 10,
+            ),
+          ),
+          if (isUserMessage) // Affichez l'icône uniquement pour les messages de l'utilisateur
+            Padding(
+              padding: EdgeInsets.only(left: 5),
+              child: Icon(
+                Icons.done_all, // Utilisez une icône de flèche
+                size: 10, // Ajustez la taille de l'icône selon vos besoins
+                color: message.isRead ? Colors.blue : Colors.grey, // Bleu si lu, gris sinon
+              ),
+            ),
+        ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildMessageInput() {
