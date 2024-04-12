@@ -5,7 +5,7 @@ from datetime import timedelta
 class Config:
     SECRET_KEY = secrets.token_hex(32)
     JWT_SECRET_KEY = secrets.token_hex(32)
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:cytech0001@localhost/app_db' # Modifier le mdp et le nom de la bdd accordement
+    SQLALCHEMY_DATABASE_URI = 'mysql://"votre_identifiant":"votre_mot_de_passe"@localhost/"votre_nom_de_base_de_données"' # Modifier le mdp et le nom de la bdd accordement
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     DEBUG = True
     SESSION_COOKIE_NAME = 'custom_session_cookie'
